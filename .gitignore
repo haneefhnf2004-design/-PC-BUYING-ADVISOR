@@ -1,0 +1,39 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+.Python
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# Virtual environment
+venv/
+env/
+.venv/
+backend/venv/
+
+# Environment / secrets
+.env
+*.env
+API.env
+backend/API.env
+backend/.env
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.user
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Model files (large binaries)
+*.pkl
+*.joblib
+*.h5
+backend/model/
