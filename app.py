@@ -1,19 +1,27 @@
 ﻿from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
 from groq import Groq
+from dotenv import load_dotenv
 import pandas as pd
 import numpy as np
 import pickle
 import os
+
+load_dotenv()
+
+client = Groq(
+    api_key=os.getenv("GROQ_API_KEY")
+)
 
 app = Flask(__name__, static_folder='.')
 CORS(app)
 
 
 
+
 # ── Load dataset ──────────────────────────────────────────────────────────────
 try:
-    df = pd.read_csv("pc_advisor_laptop_dataset.csv")
+    df = pd.read_csv("dataset/pc_advisor_laptop_dataset.csv")
 
     # Clean RAM
     df["RAM"] = df["RAM"].astype(str).str.replace("GB", "").str.strip()
@@ -36,7 +44,7 @@ except FileNotFoundError:
 
 # ── Load trained model ────────────────────────────────────────────────────────
 try:
-    with open("recommendation_model.pkl", "rb") as f:
+    with open("model/recommendation_model.pkl", "rb") as f:
         model = pickle.load(f)
     with open("brand_encoder.pkl", "rb") as f:
         le_brand = pickle.load(f)

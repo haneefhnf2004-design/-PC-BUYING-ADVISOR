@@ -7,7 +7,7 @@ from sklearn.metrics import mean_absolute_error, r2_score
 import pickle
 
 # ── Load dataset ──────────────────────────────────────────────────────────────
-df = pd.read_csv("pc_advisor_laptop_dataset.csv")
+df = pd.read_csv("../dataset/pc_advisor_laptop_dataset.csv")
 print(f"✅ Loaded {len(df)} laptops")
 print(f"Columns: {list(df.columns)}")
 
@@ -81,10 +81,10 @@ for feat, imp in zip(features, model.feature_importances_):
     print(f"   {feat}: {imp:.4f}")
 
 # ── Save model and encoder ────────────────────────────────────────────────────
-with open("recommendation_model.pkl", "wb") as f:
+with open("../model/recommendation_model.pkl", "wb") as f:
     pickle.dump(model, f)
 
-with open("brand_encoder.pkl", "wb") as f:
+with open("../brand_encoder.pkl", "wb") as f:
     pickle.dump(le_brand, f)
 
 print("\n✅ Model saved as recommendation_model.pkl")
