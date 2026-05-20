@@ -22,6 +22,9 @@ API.env
 backend/API.env
 backend/.env
 
+# Kiro IDE
+.kiro/
+
 # IDE
 .vscode/
 .idea/
