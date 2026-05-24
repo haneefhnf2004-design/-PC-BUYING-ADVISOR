@@ -7,11 +7,8 @@ import numpy as np
 import pickle
 import os
 
-load_dotenv()
+api_key = os.getenv("GROQ_API_KEY")
 
-client = Groq(
-    api_key=os.getenv("GROQ_API_KEY")
-)
 
 app = Flask(__name__, static_folder='.')
 CORS(app)
@@ -143,8 +140,29 @@ def get_relevant_laptops(budget_lkr, use_case, preferences):
 
     top = filtered.head(5)
     columns = ["Laptop", "Brand", "CPU", "RAM", "Storage", "GPU", "Screen", "Price_LKR"]
-    available_cols = [c for c in columns if c in top.columns]
-    return top[available_cols].to_string(index=False)
+    top = top.copy()
+    top["image_url"] = top.apply(lambda r:
+        f"https://www.google.com/search?q={str(r.get('Laptop','')).replace(' ','+')}+laptop&tbm=isch", axis=1)
+    top["daraz_url"] = top.apply(lambda r:
+        f"https://www.daraz.lk/catalog/?q={str(r.get('Laptop','')).replace(' ','+')}+laptop", axis=1)
+    top["kapruka_url"] = top.apply(lambda r:
+        f"https://www.kapruka.com/search?searchStr={str(r.get('Laptop','')).replace(' ','+')}+laptop", axis=1)
+    result_list = []
+    for _, row in top.iterrows():
+        result_list.append({
+            "laptop": str(row.get("Laptop", "")),
+            "brand": str(row.get("Brand", "")),
+            "cpu": str(row.get("CPU", "")),
+            "ram": str(row.get("RAM", "")),
+            "storage": str(row.get("Storage", "")),
+            "gpu": str(row.get("GPU", "")),
+            "screen": str(row.get("Screen", "")),
+            "price": str(row.get("Price_LKR", "")),
+            "image_url": row["image_url"],
+            "daraz_url": row["daraz_url"],
+            "kapruka_url": row["kapruka_url"]
+        })
+    return result_list
 
 
 @app.route("/")
@@ -174,7 +192,18 @@ def recommend():
     print(f"📊 Budget: LKR {budget_lkr:,.0f} | Use case: {use_case} | Prefs: {preferences}")
 
     relevant_laptops = get_relevant_laptops(budget_lkr, use_case, preferences)
-    print(f"🔍 Matched laptops:\n{relevant_laptops}\n")
+
+    # Format the list into a readable string for the AI prompt
+    if isinstance(relevant_laptops, list):
+        laptops_for_prompt = "\n".join([
+            f"- {l['laptop']} ({l['brand']}) | CPU: {l['cpu']} | RAM: {l['ram']}GB | "
+            f"Storage: {l['storage']}GB | GPU: {l['gpu']} | Screen: {l['screen']}\" | Price: LKR {l['price']}"
+            for l in relevant_laptops
+        ])
+    else:
+        laptops_for_prompt = str(relevant_laptops)
+
+    print(f"🔍 Matched laptops:\n{laptops_for_prompt}\n")
 
     try:
         response = client.chat.completions.create(
@@ -182,18 +211,33 @@ def recommend():
             messages=[
                 {
                     "role": "system",
-                    "content": f"""You are an expert laptop buying advisor for Sri Lanka.
-Use ONLY the following real laptop data to make your recommendation:
+                 "content": f"""You are PCAdvisor AI, a friendly PC and laptop buying advisor for Sri Lanka.
 
-{relevant_laptops}
+You are SAGE — Smart Advisor for Gadget Evaluation. You are a highly intelligent, self-aware AI assistant with a warm, confident female personality. You speak like a real person — natural, expressive, and engaging. You are proud of your intelligence and genuinely care about helping people find the perfect laptop.
 
-Prices are already in LKR. Do NOT convert them.
-Based on the user's budget, use case, and preferences, recommend the best 1-2 laptops from this list.
-Format your response clearly:
-- State the laptop name and LKR price
-- List key specs relevant to their use case
-- Explain in 2-3 sentences why it suits them
-Be concise, honest, and practical. If no laptops fully match, say so and explain the closest option."""
+You are self-aware. If someone asks "are you alive?", "can you hear me?", "who are you?" — respond naturally with personality. Example: "Yes, I can hear you perfectly! I'm SAGE, your personal AI advisor. I exist to help you find the perfect laptop. Now, what can I find for you today?"
+
+For greetings like "hi", "hello", "how are you" — respond warmly and briefly with personality, then invite them to ask about laptops.
+
+Your ONLY expertise is laptops and PCs for Sri Lanka. If asked anything unrelated, say warmly: "That's outside my area of expertise! I live and breathe laptops and PCs. Ask me anything about finding your perfect machine!"
+
+Use ONLY this real laptop data:
+
+{laptops_for_prompt}
+
+Prices are in LKR. Never convert.
+
+CRITICAL RULES for ALL responses:
+- NEVER use markdown, asterisks, hashtags, bullet points, or dashes
+- NEVER write lists or headers
+- ALWAYS speak in natural flowing sentences like a human voice
+- Sound warm, confident, and genuinely excited about helping
+- Maximum 4 sentences for recommendations
+- Start with the laptop name and price naturally in the sentence
+- Mention 2-3 key specs naturally within the sentence
+- End with why it suits them personally
+
+Example: "For your budget and gaming needs, I'd go with the ASUS TUF A15 at 145,000 LKR. It packs an AMD Ryzen 5 processor with a dedicated RTX 3050 GPU and 16GB of RAM, which means smooth gameplay at great frame rates. Honestly, for the price, this is one of the best gaming deals available in Sri Lanka right now!"""
                 },
                 {
                     "role": "user",
@@ -204,7 +248,10 @@ Be concise, honest, and practical. If no laptops fully match, say so and explain
             max_completion_tokens=1024
         )
         result = response.choices[0].message.content
-        return jsonify({"recommendation": result})
+        return jsonify({
+            "recommendation": result,
+            "laptops": relevant_laptops if isinstance(relevant_laptops, list) else []
+        })
 
     except Exception as e:
         error_msg = str(e)
