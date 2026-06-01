@@ -7,7 +7,11 @@ import numpy as np
 import pickle
 import os
 
-api_key = os.getenv("GROQ_API_KEY")
+from dotenv import load_dotenv
+import os
+load_dotenv()
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+
 
 
 app = Flask(__name__, static_folder='.')
@@ -142,11 +146,13 @@ def get_relevant_laptops(budget_lkr, use_case, preferences):
     columns = ["Laptop", "Brand", "CPU", "RAM", "Storage", "GPU", "Screen", "Price_LKR"]
     top = top.copy()
     top["image_url"] = top.apply(lambda r:
-        f"https://www.google.com/search?q={str(r.get('Laptop','')).replace(' ','+')}+laptop&tbm=isch", axis=1)
+        f"https://www.google.com/search?q={str(r.get('Laptop','')).replace(' ','+')}+laptop+price+Sri+Lanka&tbm=isch", axis=1)
     top["daraz_url"] = top.apply(lambda r:
         f"https://www.daraz.lk/catalog/?q={str(r.get('Laptop','')).replace(' ','+')}+laptop", axis=1)
     top["kapruka_url"] = top.apply(lambda r:
-        f"https://www.kapruka.com/search?searchStr={str(r.get('Laptop','')).replace(' ','+')}+laptop", axis=1)
+        f"https://www.google.com/search?q={str(r.get('Laptop','')).replace(' ','+')}+laptop+buy+Sri+Lanka+price", axis=1)
+    top["ikman_url"] = top.apply(lambda r:
+        f"https://ikman.lk/en/ads/sri-lanka/computers?query={str(r.get('Laptop','')).replace(' ','+')}+laptop", axis=1)
     result_list = []
     for _, row in top.iterrows():
         result_list.append({
@@ -160,7 +166,8 @@ def get_relevant_laptops(budget_lkr, use_case, preferences):
             "price": str(row.get("Price_LKR", "")),
             "image_url": row["image_url"],
             "daraz_url": row["daraz_url"],
-            "kapruka_url": row["kapruka_url"]
+            "kapruka_url": row["kapruka_url"],
+            "ikman_url": row["ikman_url"]
         })
     return result_list
 

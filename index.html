@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>PCAdvisor - AI-Powered PC Buying Advisor</title>
-  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
     :root {
@@ -863,9 +863,10 @@ async function sendChatMessage() {
           const btnRow = document.createElement('div');
           btnRow.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;';
           btnRow.innerHTML = `
-            <a href="${laptop.daraz_url}" target="_blank" style="background:#F57C00;color:white;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px;">🛒 Buy on Daraz</a>
-            <a href="${laptop.kapruka_url}" target="_blank" style="background:#7c3aed;color:white;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px;">🏪 Kapruka</a>
-            <a href="${laptop.image_url}" target="_blank" style="background:rgba(0,212,255,0.1);color:#00d4ff;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;border:1px solid rgba(0,212,255,0.3);display:inline-flex;align-items:center;gap:5px;">🔍 Images</a>`;
+            <a href="${laptop.daraz_url}" target="_blank" style="background:#F57C00;color:white;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px;">🛒 Daraz</a>
+            <a href="${laptop.ikman_url}" target="_blank" style="background:#e53935;color:white;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px;">📌 ikman.lk</a>
+            <a href="${laptop.kapruka_url}" target="_blank" style="background:#1565c0;color:white;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px;">🔎 Google Shop</a>
+            <a href="${laptop.image_url}" target="_blank" style="background:rgba(0,212,255,0.1);color:#00d4ff;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;border:1px solid rgba(0,212,255,0.3);display:inline-flex;align-items:center;gap:5px;">🖼️ Images</a>`;
           card.appendChild(btnRow);
 
           contentDiv.appendChild(card);
@@ -899,7 +900,7 @@ async function sendChatMessage() {
         : 'background:rgba(0,212,255,0.15); border-radius:12px 12px 4px 12px; color:#e6edf3; text-align:right;'
     }`;
     if (isBot) bubble.classList.add('bot-bubble');
-    bubble.innerHTML = isBot ? marked.parse(text) : text;
+    bubble.innerHTML = isBot ? (typeof marked !== 'undefined' ? marked.parse(text) : text) : text;
 
     div.appendChild(avatar);
     div.appendChild(bubble);
@@ -966,9 +967,9 @@ async function sendChatMessage() {
     });
   }
 
-  // Chatbot button click-ல call பண்ணு
+  // Chatbot button click
   window.addEventListener("load", () => {
-    const chatBtn = document.querySelector("#chat-toggle-btn"); // உங்க button id போடுங்க
+    const chatBtn = document.querySelector("#chat-toggle-btn"); // 
     if (chatBtn) {
       chatBtn.addEventListener("click", playChatbotOpenSound);
     }
@@ -1247,7 +1248,7 @@ async function sendChatMessage() {
 <!-- FOOTER -->
 <footer>
   <div class="container">
-    <p>&#169; 2025 <span>PCAdvisor</span> &mdash; AI-powered PC recommendations for Sri Lanka</p>
+    <p>&#169; 2026 <span>PCAdvisor</span> &mdash; AI-powered PC recommendations for Sri Lanka</p>
   </div>
 </footer>
 
@@ -1412,7 +1413,7 @@ async function sendChatMessage() {
     const metaEl = document.getElementById('resultMeta');
 
     metaEl.textContent = 'Budget: LKR ' + Number(budget).toLocaleString() + ' \u2022 Use case: ' + capitalize(useCase);
-    bodyEl.innerHTML = marked.parse(markdown);
+    bodyEl.innerHTML = typeof marked !== 'undefined' ? marked.parse(markdown) : markdown;
     resultsEl.classList.add('active');
     resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
