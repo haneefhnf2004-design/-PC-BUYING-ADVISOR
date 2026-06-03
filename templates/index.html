@@ -1,0 +1,1448 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>PCAdvisor - AI-Powered PC Buying Advisor</title>
+  <script src="https://cdn.jsdelivr.net/npm/marked@9.1.6/marked.min.js"></script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --bg: #0d1117;
+      --bg2: #0a0f1e;
+      --card: #161b27;
+      --card2: #1e2535;
+      --cyan: #00d4ff;
+      --purple: #7c3aed;
+      --cyan-dim: rgba(0,212,255,.12);
+      --purple-dim: rgba(124,58,237,.12);
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --border: rgba(255,255,255,.08);
+      --radius: 12px;
+      --tr: 0.25s ease;
+    }
+    html { scroll-behavior: smooth; }
+    body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--bg); color: var(--text); line-height: 1.6; overflow-x: hidden; }
+    a { text-decoration: none; color: inherit; }
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--bg2); }
+    ::-webkit-scrollbar-thumb { background: var(--purple); border-radius: 3px; }
+    .container { max-width: 1200px; margin: 0 auto; padding: 0 24px; }
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 12px 28px; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; border: none; transition: all var(--tr); white-space: nowrap; }
+    .btn-cyan { background: var(--cyan); color: #0d1117; box-shadow: 0 0 20px rgba(0,212,255,.35); }
+    .btn-cyan:hover { background: #33ddff; box-shadow: 0 0 32px rgba(0,212,255,.6); transform: translateY(-2px); }
+    .btn-outline { background: transparent; color: var(--text); border: 1.5px solid var(--border); }
+    .btn-outline:hover { border-color: var(--cyan); color: var(--cyan); box-shadow: 0 0 16px var(--cyan-dim); transform: translateY(-2px); }
+    /* NAVBAR */
+    nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: rgba(13,17,23,.88); backdrop-filter: blur(16px); border-bottom: 1px solid var(--border); }
+    .nav-inner { display: flex; align-items: center; justify-content: space-between; height: 64px; }
+    .nav-logo { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 700; }
+    .nav-logo svg { color: var(--cyan); flex-shrink: 0; }
+    .logo-accent { color: var(--cyan); }
+    .nav-links { display: flex; align-items: center; gap: 32px; list-style: none; }
+    .nav-links a { font-size: 14px; color: var(--muted); transition: color var(--tr); }
+    .nav-links a:hover { color: var(--text); }
+    .nav-cta { font-size: 14px; padding: 9px 20px; }
+    .hamburger { display: none; flex-direction: column; gap: 5px; cursor: pointer; background: none; border: none; padding: 4px; }
+    .hamburger span { display: block; width: 22px; height: 2px; background: var(--text); border-radius: 2px; transition: all var(--tr); }
+    .mobile-menu { display: none; flex-direction: column; background: var(--card); border-top: 1px solid var(--border); padding: 16px 24px 20px; }
+    .mobile-menu.open { display: flex; }
+    .mobile-menu a { padding: 12px 0; color: var(--muted); font-size: 15px; border-bottom: 1px solid var(--border); transition: color var(--tr); }
+    .mobile-menu a:last-child { border-bottom: none; }
+    .mobile-menu a:hover { color: var(--cyan); }
+    /* HERO */
+    .hero { min-height: 100vh; display: flex; align-items: center; padding: 100px 0 60px; background: radial-gradient(ellipse 80% 60% at 70% 40%, rgba(124,58,237,.12) 0%, transparent 60%), radial-gradient(ellipse 60% 50% at 20% 60%, rgba(0,212,255,.08) 0%, transparent 55%), var(--bg2); }
+    .hero-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
+    .hero-badge { display: inline-flex; align-items: center; gap: 8px; background: var(--cyan-dim); border: 1px solid rgba(0,212,255,.3); color: var(--cyan); font-size: 13px; font-weight: 600; padding: 6px 14px; border-radius: 20px; margin-bottom: 24px; }
+    .hero-badge::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: var(--cyan); animation: pulse 2s infinite; }
+    @keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:.5;transform:scale(1.4)} }
+    .hero h1 { font-size: clamp(36px,5vw,60px); font-weight: 800; line-height: 1.15; margin-bottom: 20px; letter-spacing: -1px; }
+    .hero h1 .cyan { color: var(--cyan); }
+    .hero h1 .purple { color: #a78bfa; }
+    .hero-sub { font-size: 17px; color: var(--muted); max-width: 480px; margin-bottom: 36px; line-height: 1.7; }
+    .hero-btns { display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 48px; }
+    .hero-stats { display: flex; gap: 32px; flex-wrap: wrap; }
+    .stat { display: flex; flex-direction: column; gap: 2px; }
+    .stat-val { font-size: 18px; font-weight: 700; }
+    .stat-label { font-size: 12px; color: var(--muted); }
+    /* PC VISUAL */
+    .hero-visual { display: flex; justify-content: center; align-items: center; position: relative; }
+    .pc-wrap { position: relative; width: 300px; height: 300px; display: flex; align-items: center; justify-content: center; }
+    .glow-ring { position: absolute; inset: -40px; border-radius: 50%; background: radial-gradient(circle, rgba(0,212,255,.18) 0%, rgba(124,58,237,.12) 50%, transparent 70%); animation: glow-pulse 3s ease-in-out infinite; }
+    @keyframes glow-pulse { 0%,100%{transform:scale(1);opacity:.8} 50%{transform:scale(1.08);opacity:1} }
+    .orbit { position: absolute; border-radius: 50%; border: 1px dashed rgba(0,212,255,.2); animation: spin-orbit linear infinite; }
+    .orbit-1 { width: 340px; height: 340px; top: -20px; left: -20px; animation-duration: 18s; }
+    .orbit-2 { width: 260px; height: 260px; top: 20px; left: 20px; animation-duration: 12s; animation-direction: reverse; }
+    @keyframes spin-orbit { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+    .orbit-dot { position: absolute; width: 8px; height: 8px; border-radius: 50%; top: -4px; left: 50%; transform: translateX(-50%); }
+    .dot-cyan { background: var(--cyan); box-shadow: 0 0 8px var(--cyan); }
+    .dot-purple { background: #a78bfa; box-shadow: 0 0 8px #a78bfa; }
+    .pc-illustration { position: relative; z-index: 1; animation: float 4s ease-in-out infinite; filter: drop-shadow(0 0 24px rgba(0,212,255,.45)) drop-shadow(0 0 48px rgba(124,58,237,.25)); }
+    @keyframes float { 0%,100%{transform:translateY(0)} 50%{transform:translateY(-14px)} }
+    /* SECTIONS */
+    section { padding: 80px 0; }
+    .section-title { text-align: center; font-size: clamp(28px,4vw,40px); font-weight: 800; margin-bottom: 12px; }
+    .section-sub { text-align: center; color: var(--muted); font-size: 16px; max-width: 520px; margin: 0 auto 56px; }
+    /* HOW IT WORKS */
+    #how-it-works { background: var(--bg); }
+    .steps { display: grid; grid-template-columns: repeat(3,1fr); gap: 28px; }
+    .step-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 32px 28px; transition: all var(--tr); position: relative; overflow: hidden; }
+    .step-card::before { content:''; position:absolute; inset:0; background: linear-gradient(135deg,var(--cyan-dim),transparent); opacity:0; transition: opacity var(--tr); }
+    .step-card:hover::before { opacity: 1; }
+    .step-card:hover { border-color: rgba(0,212,255,.3); transform: translateY(-4px); }
+    .step-num { font-size: 48px; font-weight: 900; color: var(--cyan); opacity: .15; line-height: 1; margin-bottom: 16px; }
+    .step-icon { width: 48px; height: 48px; border-radius: 10px; background: var(--cyan-dim); display: flex; align-items: center; justify-content: center; margin-bottom: 16px; font-size: 22px; }
+    .step-card h3 { font-size: 18px; font-weight: 700; margin-bottom: 8px; }
+    .step-card p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+    /* USE CASES */
+    #use-cases { background: var(--bg2); }
+    .uc-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(180px,1fr)); gap: 20px; }
+    .uc-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px 20px; text-align: center; cursor: pointer; transition: all var(--tr); }
+    .uc-card:hover { border-color: var(--purple); transform: translateY(-4px); box-shadow: 0 8px 32px rgba(124,58,237,.2); }
+    .uc-card .uc-emoji { font-size: 36px; display: block; margin-bottom: 12px; }
+    .uc-card h3 { font-size: 16px; font-weight: 700; margin-bottom: 6px; }
+    .uc-card p { font-size: 13px; color: var(--muted); }
+    /* FEATURES */
+    #features { background: var(--bg); }
+    .feat-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(280px,1fr)); gap: 24px; }
+    .feat-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 28px; transition: all var(--tr); }
+    .feat-card:hover { border-color: rgba(0,212,255,.25); box-shadow: 0 8px 32px rgba(0,212,255,.07); }
+    .feat-icon { width: 44px; height: 44px; border-radius: 10px; display: flex; align-items: center; justify-content: center; margin-bottom: 16px; font-size: 20px; }
+    .feat-icon.c { background: var(--cyan-dim); }
+    .feat-icon.p { background: var(--purple-dim); }
+    .feat-card h3 { font-size: 17px; font-weight: 700; margin-bottom: 8px; }
+    .feat-card p { font-size: 14px; color: var(--muted); line-height: 1.6; }
+    /* MODAL */
+    .overlay { position: fixed; inset: 0; z-index: 200; background: rgba(0,0,0,.75); backdrop-filter: blur(6px); display: flex; align-items: center; justify-content: center; padding: 20px; opacity: 0; pointer-events: none; transition: opacity var(--tr); }
+    .overlay.active { opacity: 1; pointer-events: all; }
+    .modal { background: var(--card); border: 1px solid var(--border); border-radius: 16px; width: 100%; max-width: 520px; padding: 36px; position: relative; transform: translateY(24px) scale(.97); transition: transform var(--tr); max-height: 90vh; overflow-y: auto; }
+    .overlay.active .modal { transform: translateY(0) scale(1); }
+    .modal-close { position: absolute; top: 16px; right: 16px; background: var(--card2); border: 1px solid var(--border); color: var(--muted); width: 32px; height: 32px; border-radius: 8px; cursor: pointer; font-size: 18px; display: flex; align-items: center; justify-content: center; transition: all var(--tr); }
+    .modal-close:hover { color: var(--text); border-color: var(--cyan); }
+    .progress-wrap { display: flex; align-items: center; gap: 12px; margin-bottom: 32px; }
+    .progress-bar { flex: 1; height: 4px; background: var(--card2); border-radius: 2px; overflow: hidden; }
+    .progress-fill { height: 100%; background: linear-gradient(90deg,var(--cyan),var(--purple)); border-radius: 2px; transition: width .4s ease; }
+    .progress-label { font-size: 12px; color: var(--muted); white-space: nowrap; }
+    .quiz-step { display: none; animation: fadeSlide .3s ease; }
+    .quiz-step.active { display: block; }
+    @keyframes fadeSlide { from{opacity:0;transform:translateX(16px)} to{opacity:1;transform:translateX(0)} }
+    .quiz-step h2 { font-size: 22px; font-weight: 800; margin-bottom: 6px; }
+    .step-hint { font-size: 14px; color: var(--muted); margin-bottom: 24px; }
+    .input-wrap { position: relative; }
+    .input-wrap input { width: 100%; padding: 14px 16px 14px 60px; background: var(--card2); border: 1.5px solid var(--border); border-radius: 10px; color: var(--text); font-size: 16px; outline: none; transition: border-color var(--tr); }
+    .input-wrap input:focus { border-color: var(--cyan); }
+    .input-wrap input::placeholder { color: var(--muted); }
+    .input-prefix { position: absolute; left: 16px; top: 50%; transform: translateY(-50%); color: var(--cyan); font-weight: 700; font-size: 13px; pointer-events: none; }
+    .uc-options { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .uc-opt { background: var(--card2); border: 1.5px solid var(--border); border-radius: 10px; padding: 16px 12px; cursor: pointer; transition: all var(--tr); text-align: center; }
+    .uc-opt:hover { border-color: rgba(0,212,255,.4); }
+    .uc-opt.selected { border-color: var(--cyan); background: var(--cyan-dim); box-shadow: 0 0 16px var(--cyan-dim); }
+    .uc-opt .oe { font-size: 28px; display: block; margin-bottom: 6px; }
+    .uc-opt .ol { font-size: 13px; font-weight: 600; }
+    .pref-area { width: 100%; padding: 14px 16px; background: var(--card2); border: 1.5px solid var(--border); border-radius: 10px; color: var(--text); font-size: 15px; outline: none; resize: vertical; min-height: 100px; font-family: inherit; transition: border-color var(--tr); }
+    .pref-area:focus { border-color: var(--cyan); }
+    .pref-area::placeholder { color: var(--muted); }
+    .modal-nav { display: flex; justify-content: space-between; align-items: center; margin-top: 28px; gap: 12px; }
+    .btn-back { background: var(--card2); color: var(--muted); border: 1.5px solid var(--border); padding: 11px 22px; border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer; transition: all var(--tr); }
+    .btn-back:hover { color: var(--text); border-color: var(--muted); }
+    /* LOADING */
+    .loading-wrap { display: none; flex-direction: column; align-items: center; justify-content: center; gap: 20px; padding: 40px 0; }
+    .loading-wrap.active { display: flex; }
+    .spinner { width: 48px; height: 48px; border-radius: 50%; border: 3px solid var(--card2); border-top-color: var(--cyan); animation: spin .8s linear infinite; }
+    @keyframes spin { to{transform:rotate(360deg)} }
+    .loading-text { color: var(--muted); font-size: 15px; }
+    /* RESULTS */
+    #results { display: none; padding: 80px 0; background: var(--bg); }
+    #results.active { display: block; animation: fadeIn .5s ease; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(20px)} to{opacity:1;transform:translateY(0)} }
+    .result-card { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 40px; max-width: 800px; margin: 0 auto; box-shadow: 0 0 60px rgba(0,212,255,.05), 0 0 60px rgba(124,58,237,.05); }
+    .result-header { display: flex; align-items: center; gap: 14px; margin-bottom: 28px; padding-bottom: 20px; border-bottom: 1px solid var(--border); }
+    .result-icon { width: 48px; height: 48px; border-radius: 12px; background: linear-gradient(135deg,var(--cyan-dim),var(--purple-dim)); display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; }
+    .result-header h2 { font-size: 22px; font-weight: 800; }
+    .result-header p { font-size: 13px; color: var(--muted); margin-top: 2px; }
+    .result-body { line-height: 1.8; font-size: 15px; }
+    .result-body h1,.result-body h2,.result-body h3 { color: var(--cyan); margin: 20px 0 8px; font-size: 17px; font-weight: 700; }
+    .result-body ul { padding-left: 20px; margin: 8px 0; }
+    .result-body li { margin-bottom: 6px; }
+    .result-body strong { color: var(--text); font-weight: 700; }
+    .result-body p { margin-bottom: 12px; color: var(--muted); }
+    .result-body code { background: var(--card2); padding: 2px 6px; border-radius: 4px; font-size: 13px; color: var(--cyan); }
+    .result-footer { margin-top: 32px; padding-top: 20px; border-top: 1px solid var(--border); display: flex; gap: 12px; flex-wrap: wrap; }
+    /* TOAST */
+    .toast { position: fixed; bottom: 24px; right: 24px; z-index: 300; background: #2d1b1b; border: 1px solid #f85149; color: #f85149; padding: 14px 20px; border-radius: 10px; font-size: 14px; max-width: 340px; transform: translateY(80px); opacity: 0; transition: all var(--tr); }
+    .toast.show { transform: translateY(0); opacity: 1; }
+    /* FOOTER */
+    footer { background: var(--bg2); border-top: 1px solid var(--border); padding: 32px 0; text-align: center; color: var(--muted); font-size: 14px; }
+    footer span { color: var(--cyan); }
+    /* RESPONSIVE */
+    @media(max-width:900px) {
+      .hero-inner { grid-template-columns: 1fr; text-align: center; }
+      .hero-sub { margin: 0 auto 36px; }
+      .hero-btns { justify-content: center; }
+      .hero-stats { justify-content: center; }
+      .hero-visual { display: none; }
+      .steps { grid-template-columns: 1fr; }
+    }
+    @media(max-width:640px) {
+      .nav-links,.nav-cta { display: none; }
+      .hamburger { display: flex; }
+      .uc-options { grid-template-columns: 1fr 1fr; }
+      .modal { padding: 24px; }
+      .result-card { padding: 24px; }
+    }
+
+    /* ── Chat bubble markdown styles ── */
+    .bot-bubble h1, .bot-bubble h2, .bot-bubble h3 {
+      color: #00d4ff;
+      font-size: 14px;
+      font-weight: 700;
+      margin: 12px 0 6px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid rgba(0,212,255,0.2);
+    }
+    .bot-bubble h2 { font-size: 13px; }
+    .bot-bubble h3 { font-size: 13px; color: #a78bfa; border-bottom: none; }
+    .bot-bubble ul, .bot-bubble ol {
+      padding-left: 18px;
+      margin: 6px 0;
+    }
+    .bot-bubble li {
+      margin-bottom: 4px;
+      line-height: 1.55;
+    }
+    .bot-bubble strong { color: #e6edf3; font-weight: 700; }
+    .bot-bubble em { color: #a5b4fc; }
+    .bot-bubble p { margin-bottom: 8px; }
+    .bot-bubble p:last-child { margin-bottom: 0; }
+    .bot-bubble hr {
+      border: none;
+      border-top: 1px solid rgba(255,255,255,0.1);
+      margin: 10px 0;
+    }
+    .bot-bubble code {
+      background: rgba(0,212,255,0.1);
+      color: #00d4ff;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <!-- SAGE VOICE ASSISTANT - SCI-FI UI -->
+<div id="sage-overlay" style="display:none; position:fixed; inset:0; z-index:600; background:#050510; flex-direction:column; align-items:center; justify-content:space-between; padding:0;">
+
+  <!-- Top Bar -->
+  <div style="width:100%; height:44px; background:rgba(0,0,0,0.6); border-bottom:1px solid rgba(0,212,255,0.15); display:flex; align-items:center; justify-content:space-between; padding:0 24px; flex-shrink:0;">
+    <span style="font-family:monospace; font-size:11px; color:#00d4ff; letter-spacing:2px;">V1.0.0</span>
+    <div id="sage-topwave" style="display:flex; gap:3px; align-items:center;">
+      <span style="font-family:monospace; font-size:11px; color:rgba(0,212,255,0.4); letter-spacing:1px;">▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:20px;">
+      <span id="sage-clock" style="font-family:monospace; font-size:11px; color:#8b949e;">12:00:00 PM</span>
+      <button onclick="closeSAGE()" style="background:none; border:none; color:#8b949e; cursor:pointer; font-size:16px; line-height:1;">✕</button>
+    </div>
+  </div>
+
+  <!-- Middle: Avatar + Terminal -->
+  <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; padding:24px 0 0;">
+
+    <!-- Circle Avatar -->
+    <div style="position:relative; margin-bottom:12px;">
+      <div id="sage-ring-outer" style="width:180px; height:180px; border-radius:50%; border:1.5px solid rgba(124,58,237,0.5); display:flex; align-items:center; justify-content:center; position:relative;">
+        <div style="position:absolute; inset:-10px; border-radius:50%; border:1px solid rgba(124,58,237,0.2); animation:sage-ring-pulse 2.5s ease-in-out infinite;"></div>
+        <div style="position:absolute; inset:-20px; border-radius:50%; border:1px solid rgba(0,212,255,0.1); animation:sage-ring-pulse 2.5s ease-in-out infinite 0.5s;"></div>
+        <div id="sage-avatar-label" style="font-family:monospace; font-size:22px; font-weight:900; color:#00d4ff; letter-spacing:6px; text-shadow:0 0 20px rgba(0,212,255,0.8);">S.A.G.E</div>
+      </div>
+    </div>
+
+    <!-- Subtitle -->
+    <div style="font-family:monospace; font-size:10px; color:#8b949e; letter-spacing:3px; margin-bottom:8px;">PROJECT: PCADVISOR</div>
+
+    <!-- Status -->
+    <div id="sage-status" style="font-family:monospace; font-size:12px; color:#00d4ff; margin-bottom:16px; min-height:18px; letter-spacing:1px;">● SYSTEMS ONLINE</div>
+
+    <!-- Terminal -->
+    <div id="sage-terminal" style="width:100%; max-width:680px; height:200px; overflow-y:auto; background:rgba(0,0,0,0.4); border-top:1px solid rgba(255,255,255,0.05); border-bottom:1px solid rgba(255,255,255,0.05); padding:16px 28px; font-family:monospace; font-size:13px; line-height:1.9;">
+    </div>
+  </div>
+
+  <!-- Text Input (above toolbar) -->
+  <div id="sage-input-row" style="display:none; width:100%; max-width:680px; padding:12px 24px 0; margin:0 auto;">
+    <div style="display:flex; gap:8px;">
+      <input id="sage-text-input" type="text" placeholder="Ask SAGE about laptops or PCs..."
+        style="flex:1; padding:11px 16px; background:#0d1117; border:1px solid rgba(0,212,255,0.3); border-radius:10px; color:#e6edf3; font-size:13px; font-family:monospace; outline:none;"
+        onkeydown="if(event.key==='Enter'){askSAGE(this.value); this.value=''; document.getElementById('sage-input-row').style.display='none';}"
+      />
+      <button onclick="const v=document.getElementById('sage-text-input').value; askSAGE(v); document.getElementById('sage-text-input').value=''; document.getElementById('sage-input-row').style.display='none';"
+        style="background:#00d4ff; color:#0d1117; border:none; border-radius:10px; width:42px; height:42px; cursor:pointer; font-size:16px; font-weight:700;">➤</button>
+    </div>
+  </div>
+
+  <!-- Bottom Toolbar -->
+  <div style="width:100%; padding:20px 0 28px; display:flex; justify-content:center;">
+    <div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:50px; padding:10px 28px; display:flex; align-items:center; gap:16px;">
+
+      <!-- Power/Close -->
+      <button onclick="closeSAGE()" title="Close SAGE"
+        style="width:46px; height:46px; border-radius:50%; background:rgba(0,212,255,0.08); border:1px solid rgba(0,212,255,0.25); color:#00d4ff; cursor:pointer; font-size:20px; display:flex; align-items:center; justify-content:center; transition:all 0.2s;">⏻</button>
+
+      <!-- Mic -->
+      <button id="sage-mic-btn" onclick="toggleSAGEListening()" title="Voice Input"
+        style="width:46px; height:46px; border-radius:50%; background:rgba(0,212,255,0.15); border:2px solid #00d4ff; color:#00d4ff; cursor:pointer; font-size:20px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 16px rgba(0,212,255,0.3); transition:all 0.2s;">🎤</button>
+
+      <div style="width:1px; height:28px; background:rgba(255,255,255,0.08);"></div>
+
+      <!-- Type -->
+      <button onclick="const r=document.getElementById('sage-input-row'); r.style.display=r.style.display==='none'?'block':'none';" title="Type a message"
+        style="width:46px; height:46px; border-radius:50%; background:transparent; border:1px solid rgba(255,255,255,0.1); color:#8b949e; cursor:pointer; font-size:20px; display:flex; align-items:center; justify-content:center; transition:all 0.2s;">💬</button>
+
+      <!-- Clear -->
+      <button onclick="clearSAGETerminal()" title="Clear terminal"
+        style="width:46px; height:46px; border-radius:50%; background:transparent; border:1px solid rgba(255,255,255,0.1); color:#8b949e; cursor:pointer; font-size:20px; display:flex; align-items:center; justify-content:center; transition:all 0.2s;">🗑</button>
+
+      <!-- Stop Speech -->
+      <button onclick="window.speechSynthesis&&window.speechSynthesis.cancel(); setSAGEStatus('● READY');" title="Stop speaking"
+        style="width:46px; height:46px; border-radius:50%; background:transparent; border:1px solid rgba(255,255,255,0.1); color:#8b949e; cursor:pointer; font-size:20px; display:flex; align-items:center; justify-content:center; transition:all 0.2s;">⏹</button>
+
+    </div>
+  </div>
+</div>
+
+<style>
+  @keyframes sage-ring-pulse {
+    0%,100% { transform:scale(1); opacity:0.4; }
+    50% { transform:scale(1.04); opacity:0.9; }
+  }
+  @keyframes sage-listen-pulse {
+    0%,100% { border-color:#00d4ff; box-shadow:0 0 20px rgba(0,212,255,0.5); }
+    50% { border-color:#7c3aed; box-shadow:0 0 40px rgba(124,58,237,0.7); }
+  }
+</style>
+
+<script>
+  let sageRecognition = null;
+  let sageListening = false;
+
+  // Clock
+  function updateSageClock() {
+    const now = new Date();
+    let h = now.getHours(), m = now.getMinutes(), s = now.getSeconds();
+    const ap = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    const el = document.getElementById('sage-clock');
+    if (el) el.textContent = `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')} ${ap}`;
+  }
+  setInterval(updateSageClock, 1000);
+  updateSageClock();
+
+  function openSAGE() {
+    const el = document.getElementById('sage-overlay');
+    el.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    playSAGEOpenSound();
+    setTimeout(() => {
+      sageTerminalLog('SAGE', 'Good day! Systems are fully operational. Awaiting commands.');
+      speakSAGE('Good day! I am SAGE, your smart advisor for gadget evaluation. How can I help you today?');
+    }, 300);
+  }
+
+  function closeSAGE() {
+    document.getElementById('sage-overlay').style.display = 'none';
+    document.body.style.overflow = '';
+    if (sageListening) stopSAGEListening();
+    if (window.speechSynthesis) window.speechSynthesis.cancel();
+  }
+
+  function clearSAGETerminal() {
+    document.getElementById('sage-terminal').innerHTML = '';
+    sageTerminalLog('System', 'Terminal cleared.');
+  }
+
+  function setSAGEStatus(msg) {
+    const el = document.getElementById('sage-status');
+    if (el) el.textContent = msg;
+  }
+
+  function sageTerminalLog(speaker, message) {
+    const terminal = document.getElementById('sage-terminal');
+    const now = new Date();
+    let h = now.getHours(), m = now.getMinutes(), s = now.getSeconds();
+    const ap = h >= 12 ? 'PM' : 'AM';
+    h = h % 12 || 12;
+    const time = `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')} ${ap}`;
+    const color = speaker === 'SAGE' ? '#00d4ff' : speaker === 'You' ? '#a78bfa' : '#8b949e';
+    const div = document.createElement('div');
+    div.style.marginBottom = '10px';
+    div.innerHTML = `<span style="color:#555;">[${time}]</span> <span style="color:${color}; font-weight:700;">${speaker}</span><br><span style="color:#c9d1d9;">${message.replace(/</g,'&lt;').replace(/\n/g,'<br>')}</span>`;
+    terminal.appendChild(div);
+    terminal.scrollTop = terminal.scrollHeight;
+  }
+
+  function playSAGEOpenSound() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      [330, 440, 550, 660].forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.1);
+        gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.1);
+        gain.gain.linearRampToValueAtTime(0.18, ctx.currentTime + i * 0.1 + 0.04);
+        gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.1 + 0.3);
+        osc.start(ctx.currentTime + i * 0.1);
+        osc.stop(ctx.currentTime + i * 0.1 + 0.3);
+      });
+    } catch(e) {}
+  }
+
+  function toggleSAGEListening() {
+    sageListening ? stopSAGEListening() : startSAGEListening();
+  }
+
+  function startSAGEListening() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) {
+      sageTerminalLog('System', 'Voice recognition not supported. Please use Chrome or Edge.');
+      document.getElementById('sage-input-row').style.display = 'block';
+      return;
+    }
+
+    // Request mic permission explicitly first
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(() => _startRecognition(SR))
+      .catch(err => {
+        sageTerminalLog('System', 'Microphone access denied. Please allow mic permission in your browser and try again.');
+        setSAGEStatus('● MIC BLOCKED');
+      });
+  }
+
+  function _startRecognition(SR) {
+    if (sageRecognition) {
+      try { sageRecognition.abort(); } catch(e) {}
+    }
+
+    sageRecognition = new SR();
+    sageRecognition.lang = 'en-US';
+    sageRecognition.continuous = false;
+    sageRecognition.interimResults = true;
+    sageRecognition.maxAlternatives = 5;
+
+    sageRecognition.onstart = () => {
+      sageListening = true;
+      document.getElementById('sage-mic-btn').style.background = 'rgba(255,68,68,0.2)';
+      document.getElementById('sage-mic-btn').style.borderColor = '#ff4444';
+      document.getElementById('sage-mic-btn').style.color = '#ff4444';
+      document.getElementById('sage-mic-btn').innerHTML = '⏹';
+      document.getElementById('sage-ring-outer').style.animation = 'sage-listen-pulse 0.8s ease-in-out infinite';
+      setSAGEStatus('● LISTENING — speak now...');
+    };
+
+    sageRecognition.onresult = (e) => {
+      let interim = '';
+      let final = '';
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        const t = e.results[i][0].transcript;
+        if (e.results[i].isFinal) final += t;
+        else interim += t;
+      }
+      if (interim) setSAGEStatus('● HEARING: ' + interim.substring(0, 50) + '...');
+      if (final) {
+        sageTerminalLog('You', final);
+        askSAGE(final);
+      }
+    };
+
+    sageRecognition.onerror = (e) => {
+      const msgs = {
+        'no-speech':          'No speech detected. Please speak clearly and try again.',
+        'audio-capture':      'Microphone not found. Check your mic is connected.',
+        'not-allowed':        'Microphone blocked. Click the mic icon in your browser address bar and allow access.',
+        'network':            'Network error during recognition. Check your internet connection.',
+        'aborted':            'Listening stopped.',
+        'service-not-allowed':'Speech service not allowed. Open the page via http://localhost:5000, not as a file.',
+      };
+      const msg = msgs[e.error] || ('Recognition error: ' + e.error);
+      sageTerminalLog('System', msg);
+      setSAGEStatus('● ' + (e.error || 'ERROR').toUpperCase());
+      stopSAGEListening();
+    };
+
+    sageRecognition.onend = () => {
+      // Only stop UI if we didn't already get a result
+      stopSAGEListening();
+    };
+
+    try {
+      sageRecognition.start();
+    } catch(e) {
+      sageTerminalLog('System', 'Could not start microphone: ' + e.message);
+      stopSAGEListening();
+    }
+  }
+
+  function stopSAGEListening() {
+    sageListening = false;
+    if (sageRecognition) sageRecognition.stop();
+    const btn = document.getElementById('sage-mic-btn');
+    if (btn) {
+      btn.style.background = 'rgba(0,212,255,0.15)';
+      btn.style.borderColor = '#00d4ff';
+      btn.style.color = '#00d4ff';
+      btn.innerHTML = '🎤';
+    }
+    const ring = document.getElementById('sage-ring-outer');
+    if (ring) ring.style.animation = '';
+    setSAGEStatus('● READY');
+  }
+
+  async function askSAGE(query) {
+    if (!query || !query.trim()) return;
+
+    const q = query.toLowerCase().trim();
+    setSAGEStatus('● PROCESSING...');
+
+    // ── Command: open daraz / kapruka / image link ────────────────────────
+    const openCmds = ['open', 'go to', 'show', 'launch', 'visit', 'take me to'];
+    const isOpenCmd = openCmds.some(c => q.startsWith(c) || q.includes(c));
+
+    if (isOpenCmd) {
+      // Try to find a stored laptop card link in the chat
+      const links = document.querySelectorAll('#chat-messages a[href]');
+      let matched = null;
+
+      if (q.includes('daraz')) {
+        matched = [...links].find(a => a.href.includes('daraz.lk'));
+      } else if (q.includes('kapruka')) {
+        matched = [...links].find(a => a.href.includes('kapruka.com'));
+      } else if (q.includes('image') || q.includes('photo') || q.includes('picture') || q.includes('google')) {
+        matched = [...links].find(a => a.href.includes('google.com'));
+      } else if (q.includes('link') || q.includes('buy') || q.includes('shop')) {
+        matched = [...links].find(a => a.href.includes('daraz.lk'));
+      }
+
+      if (matched) {
+        window.open(matched.href, '_blank');
+        sageTerminalLog('SAGE', 'Opening link now...');
+        setSAGEStatus('● LINK OPENED');
+        speakSAGE('Opening the link now.');
+        return;
+      } else {
+        sageTerminalLog('SAGE', 'No link found yet. Ask me for a laptop recommendation first, then say open Daraz or open Kapruka.');
+        setSAGEStatus('● READY');
+        speakSAGE('Please ask for a laptop recommendation first, then I can open the link for you.');
+        return;
+      }
+    }
+
+    // ── Standard recommendation query ────────────────────────────────────
+    const budgetMatch = query.match(/(\d[\d,]*)\s*(k|lkr|rs)?/i);
+    let budget = budgetMatch ? budgetMatch[1].replace(/,/g,'') : '300000';
+    if (query.toLowerCase().includes('k') && budget.length <= 3) budget = budget + '000';
+
+    const useCases = ['gaming','office','video editing','programming','general use','student'];
+    let useCase = 'general use';
+    for (const uc of useCases) {
+      if (q.includes(uc)) { useCase = uc; break; }
+    }
+
+    try {
+      const res = await fetch('http://localhost:5000/recommend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ budget: budget + ' LKR', use_case: useCase, preferences: query })
+      });
+
+      const data = await res.json();
+      const responseText = data.recommendation || 'Sorry, I could not get a recommendation.';
+      const cleanText = responseText.replace(/[#*`]/g, '').replace(/\n+/g,' ').trim();
+
+      sageTerminalLog('SAGE', cleanText.substring(0, 400) + (cleanText.length > 400 ? '...' : ''));
+      setSAGEStatus('● RESPONSE READY');
+      speakSAGE(cleanText.substring(0, 250));
+
+    } catch(err) {
+      sageTerminalLog('System', 'Could not reach server. Make sure backend is running on localhost:5000.');
+      setSAGEStatus('● CONNECTION ERROR');
+    }
+  }
+
+  function speakSAGE(text) {
+    if (!window.speechSynthesis) return;
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.rate = 0.92;
+    utterance.pitch = 1.2;
+    utterance.volume = 1.0;
+
+    // Female-only voice selection — aggressive, no male fallback
+    const loadVoices = () => {
+      const voices = window.speechSynthesis.getVoices();
+
+      // Log all voices to console so we can debug on any system
+      console.log('[SAGE voices]', voices.map(v => v.name + ' | ' + v.lang));
+
+      // Known female voice names (Windows, Mac, Chrome, Edge)
+      const femaleNames = [
+        'Microsoft Zira',
+        'Microsoft Zira Desktop',
+        'Zira',
+        'Samantha',
+        'Karen',
+        'Moira',
+        'Tessa',
+        'Veena',
+        'Victoria',
+        'Fiona',
+        'Google UK English Female',
+        'Google US English Female',
+        'Microsoft Aria',
+        'Microsoft Jenny',
+        'Microsoft Michelle',
+        'Microsoft Monica',
+        'Microsoft Clara',
+        'Microsoft Hazel',
+        'Microsoft Susan',
+        'Microsoft Eva',
+        'Microsoft Emma',
+        'Microsoft Libby',
+        'Microsoft Mia',
+        'Microsoft Natasha',
+        'Microsoft Neerja',
+        'Microsoft Heera',
+        'Microsoft Zira Online',
+        'Microsoft Aria Online',
+      ];
+
+      // 1. Exact name match
+      let pick = voices.find(v => femaleNames.includes(v.name));
+
+      // 2. Partial name match on known female keywords
+      if (!pick) {
+        pick = voices.find(v => {
+          const n = v.name.toLowerCase();
+          return n.includes('zira') || n.includes('samantha') || n.includes('female') ||
+                 n.includes('aria') || n.includes('jenny') || n.includes('michelle') ||
+                 n.includes('monica') || n.includes('hazel') || n.includes('susan') ||
+                 n.includes('emma') || n.includes('libby') || n.includes('natasha') ||
+                 n.includes('karen') || n.includes('moira') || n.includes('tessa') ||
+                 n.includes('victoria') || n.includes('fiona') || n.includes('eva') ||
+                 n.includes('mia') || n.includes('clara');
+        });
+      }
+
+      // 3. Any en-GB or en-AU voice (tend to be female on most systems)
+      if (!pick) {
+        pick = voices.find(v => v.lang === 'en-GB' || v.lang === 'en-AU');
+      }
+
+      // 4. Any English voice that is NOT a known male name
+      if (!pick) {
+        const maleNames = ['david', 'mark', 'daniel', 'james', 'george', 'rishi', 'fred', 'alex', 'thomas', 'richard'];
+        pick = voices.find(v => {
+          const n = v.name.toLowerCase();
+          return v.lang.startsWith('en') && !maleNames.some(m => n.includes(m));
+        });
+      }
+
+      if (pick) {
+        console.log('[SAGE] Using voice:', pick.name, pick.lang);
+        utterance.voice = pick;
+      } else {
+        console.warn('[SAGE] No suitable female voice found. Available:', voices.map(v => v.name));
+      }
+    };
+
+    if (window.speechSynthesis.getVoices().length) {
+      loadVoices();
+    } else {
+      window.speechSynthesis.onvoiceschanged = loadVoices;
+    }
+
+    utterance.onstart = () => {
+      setSAGEStatus('● SPEAKING...');
+      document.getElementById('sage-ring-outer').style.animation = 'sage-listen-pulse 1s ease-in-out infinite';
+    };
+    utterance.onend = () => {
+      setSAGEStatus('● READY');
+      document.getElementById('sage-ring-outer').style.animation = '';
+    };
+
+    window.speechSynthesis.speak(utterance);
+  }
+
+  // Close on outside click
+  document.getElementById('sage-overlay').addEventListener('click', function(e) {
+    if (e.target === this) closeSAGE();
+  });
+</script>
+
+  <!-- CHATBOT POPUP -->
+<div id="chatbot-overlay" style="display:none; position:fixed; inset:0; z-index:500; background:rgba(0,0,0,0.75); backdrop-filter:blur(6px); align-items:center; justify-content:center; padding:20px;">
+  <div style="background:#161b27; border:1px solid rgba(0,212,255,0.3); border-radius:16px; width:100%; max-width:480px; height:600px; display:flex; flex-direction:column; position:relative; box-shadow:0 0 60px rgba(0,212,255,0.15);">
+    
+    <!-- Header -->
+    <div style="padding:20px 24px; border-bottom:1px solid rgba(255,255,255,0.08); display:flex; align-items:center; gap:12px;">
+      <div style="width:40px; height:40px; border-radius:10px; background:rgba(0,212,255,0.12); display:flex; align-items:center; justify-content:center; font-size:20px;">🤖</div>
+      <div style="flex:1;">
+        <div style="font-weight:700; font-size:16px;">PCAdvisor AI</div>
+        <div style="font-size:12px; color:#8b949e;">Ask me anything about PCs</div>
+      </div>
+      <button onclick="closeChatbot()" style="background:#1e2535; border:1px solid rgba(255,255,255,0.08); color:#8b949e; width:32px; height:32px; border-radius:8px; cursor:pointer; font-size:18px; display:flex; align-items:center; justify-content:center;">&times;</button>
+    </div>
+
+    <!-- Messages -->
+    <div id="chat-messages" style="flex:1; overflow-y:auto; padding:20px; display:flex; flex-direction:column; gap:12px;">
+      <!-- Welcome message -->
+      <div style="display:flex; gap:10px; align-items:flex-start;">
+        <div style="width:32px; height:32px; border-radius:8px; background:rgba(0,212,255,0.12); display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0;">🤖</div>
+        <div style="background:#1e2535; border-radius:12px 12px 12px 4px; padding:12px 16px; font-size:14px; color:#e6edf3; max-width:85%; line-height:1.6;">
+          Hi! I'm PCAdvisor AI 👋<br><br>Tell me your <strong style="color:#00d4ff;">budget</strong> and <strong style="color:#00d4ff;">use case</strong> and I'll recommend the best laptop for you!<br><br>Example: <em style="color:#8b949e;">"Gaming laptop under 150,000 LKR"</em>
+        </div>
+      </div>
+    </div>
+
+    <!-- Input -->
+    <div style="padding:16px 20px; border-top:1px solid rgba(255,255,255,0.08); display:flex; gap:10px;">
+      <input id="chat-input" type="text" placeholder="e.g. Gaming laptop under 150k LKR..." 
+        style="flex:1; padding:12px 16px; background:#0a0f1e; border:1.5px solid rgba(255,255,255,0.08); border-radius:10px; color:#e6edf3; font-size:14px; outline:none; font-family:inherit;"
+        onkeydown="if(event.key==='Enter') sendChatMessage()"
+        onfocus="this.style.borderColor='#00d4ff'"
+        onblur="this.style.borderColor='rgba(255,255,255,0.08)'"
+      />
+      <button onclick="sendChatMessage()" id="send-btn"
+        style="background:#00d4ff; color:#0d1117; border:none; border-radius:10px; width:44px; height:44px; cursor:pointer; font-size:20px; display:flex; align-items:center; justify-content:center; flex-shrink:0; transition:all 0.2s;">
+        ➤
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function openChatbot() {
+    const overlay = document.getElementById('chatbot-overlay');
+    overlay.style.display = 'flex';
+    document.body.style.overflow = 'hidden';
+    setTimeout(() => document.getElementById('chat-input').focus(), 100);
+  }
+
+  function closeChatbot() {
+    document.getElementById('chatbot-overlay').style.display = 'none';
+    document.body.style.overflow = '';
+  }
+
+  // Close on outside click
+  document.getElementById('chatbot-overlay').addEventListener('click', function(e) {
+    if (e.target === this) closeChatbot();
+  });
+
+async function sendChatMessage() {
+    const input = document.getElementById('chat-input');
+    const msg = input.value.trim();
+    if (!msg) return;
+
+    input.value = '';
+    addChatMessage(msg, 'user');
+
+    const msgLower = msg.toLowerCase();
+
+    // Greeting check
+    const greetings = ['hi', 'hello', 'hey', 'how are you', 'good morning', 'good evening', "what's up", 'sup'];
+    const isGreeting = greetings.some(g => msgLower.trim() === g || msgLower.trim().startsWith(g + ' '));
+    if (isGreeting) {
+      addChatMessage("Hi there! 👋 I'm PCAdvisor AI!\n\nI help you find the **perfect laptop or PC** in Sri Lanka. Just tell me:\n- Your **budget** (in LKR)\n- Your **use case** (gaming, office, programming, etc.)\n\nExample: *'Gaming laptop under 150,000 LKR'*", 'bot');
+      return;
+    }
+
+    // PC/Laptop related keywords check
+    const pcKeywords = [
+      'laptop', 'pc', 'computer', 'gaming', 'budget', 'lkr', 'ram', 'gpu', 'cpu',
+      'processor', 'storage', 'ssd', 'screen', 'display', 'brand', 'recommend',
+      'buy', 'price', 'performance', 'editing', 'programming', 'office', 'student',
+      'under', 'within', 'suggest', 'best', 'cheap', 'good', 'show', 'all', 'list',
+      'apple', 'asus', 'dell', 'hp', 'lenovo', 'msi', 'acer', 'razer', 'samsung', 'lg',
+      'macbook', 'vivobook', 'ideapad', 'inspiron', 'pavilion', 'victus', 'tuf',
+      'details', 'spec', 'model', 'series', 'i5', 'i7', 'i9', 'ryzen', 'intel',
+      'image', 'photo', 'picture', 'daraz', 'shop', 'link', 'where'
+    ];
+
+    const isRelevant = pcKeywords.some(word => msgLower.includes(word));
+
+    if (!isRelevant) {
+      addChatMessage("I'm only able to help with **laptop and PC recommendations** 💻\n\nTry asking something like:\n- *'Gaming laptop under 150,000 LKR'*\n- *'Best laptop for programming under 100k'*\n- *'Show all Apple laptops'*", 'bot');
+      return;
+    }
+
+    // Typing indicator
+    const typingId = addTypingIndicator();
+
+    // Parse budget
+    const budgetMatch = msg.match(/(\d[\d,]*)\s*(k|lkr|rs)?/i);
+    let budget = budgetMatch ? budgetMatch[1].replace(/,/g, '') : '500000';
+    if (msg.toLowerCase().includes('k') && budget.length <= 3) budget = budget + '000';
+
+    // Detect use case
+    const useCases = ['gaming', 'office', 'video editing', 'programming', 'general use', 'student'];
+    let useCase = 'general use';
+    for (const uc of useCases) {
+      if (msgLower.includes(uc)) { useCase = uc; break; }
+    }
+
+    try {
+      const res = await fetch('http://localhost:5000/recommend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ budget: budget + ' LKR', use_case: useCase, preferences: msg })
+      });
+
+      removeTypingIndicator(typingId);
+      if (!res.ok) throw new Error('Server error');
+      const data = await res.json();
+      addChatMessage(data.recommendation, 'bot');
+
+      // Show laptop cards for ALL results, sorted by price ascending
+      if (data.laptops && data.laptops.length > 0) {
+        const messages = document.getElementById('chat-messages');
+
+        // Sort by price so cheapest shows first
+        const sorted = [...data.laptops].sort((a, b) => parseFloat(a.price) - parseFloat(b.price));
+        const lowestPrice = parseFloat(sorted[0].price);
+
+        // Wrapper card
+        const wrapDiv = document.createElement('div');
+        wrapDiv.style.cssText = 'display:flex; gap:10px; align-items:flex-start;';
+
+        const avatarDiv = document.createElement('div');
+        avatarDiv.style.cssText = 'width:32px;height:32px;border-radius:8px;background:rgba(0,212,255,0.12);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;';
+        avatarDiv.textContent = '🤖';
+
+        const contentDiv = document.createElement('div');
+        contentDiv.style.cssText = 'background:#1e2535;border-radius:12px;padding:16px;max-width:90%;width:100%;';
+
+        const heading = document.createElement('div');
+        heading.style.cssText = 'font-size:13px;font-weight:700;color:#00d4ff;margin-bottom:12px;';
+        heading.textContent = '�️ Available Options — Sorted by Price';
+        contentDiv.appendChild(heading);
+
+        sorted.forEach((laptop, idx) => {
+          const price = parseFloat(laptop.price);
+          const isCheapest = price === lowestPrice;
+
+          const card = document.createElement('div');
+          card.style.cssText = `background:${isCheapest ? 'rgba(0,212,255,0.08)' : 'rgba(255,255,255,0.03)'};border:1px solid ${isCheapest ? 'rgba(0,212,255,0.4)' : 'rgba(255,255,255,0.06)'};border-radius:10px;padding:12px;margin-bottom:10px;`;
+
+          // Laptop icon + name row
+          const nameRow = document.createElement('div');
+          nameRow.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:8px;';
+
+          // SVG laptop icon + Google image thumbnail link
+          nameRow.innerHTML = `
+            <a href="${laptop.image_url}" target="_blank" title="View images of ${laptop.laptop}" style="flex-shrink:0;display:block;width:48px;height:48px;border-radius:8px;background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.25);display:flex;align-items:center;justify-content:center;text-decoration:none;">
+              <svg width="28" height="28" viewBox="0 0 40 40" fill="none">
+                <rect x="6" y="8" width="28" height="18" rx="2" stroke="#00d4ff" stroke-width="1.5" fill="none"/>
+                <rect x="9" y="11" width="22" height="12" rx="1" fill="rgba(0,212,255,0.15)"/>
+                <rect x="4" y="26" width="32" height="3" rx="1.5" fill="#00d4ff" opacity="0.4"/>
+                <rect x="14" y="29" width="12" height="2" rx="1" fill="#00d4ff" opacity="0.3"/>
+              </svg>
+            </a>
+            <div>
+              <div style="font-size:13px;font-weight:700;color:#e6edf3;">${laptop.brand} ${laptop.laptop}${isCheapest ? ' <span style="background:#00d4ff;color:#0d1117;font-size:10px;padding:2px 7px;border-radius:10px;font-weight:700;margin-left:4px;">BEST PRICE</span>' : ''}</div>
+              <div style="font-size:11px;color:#8b949e;margin-top:2px;">${laptop.cpu} · ${laptop.ram}GB RAM · ${laptop.storage}GB</div>
+            </div>`;
+          card.appendChild(nameRow);
+
+          // Price
+          const priceDiv = document.createElement('div');
+          priceDiv.style.cssText = 'font-size:15px;font-weight:800;color:#00d4ff;margin-bottom:10px;';
+          priceDiv.textContent = '💰 LKR ' + Number(laptop.price).toLocaleString();
+          card.appendChild(priceDiv);
+
+          // Buy buttons
+          const btnRow = document.createElement('div');
+          btnRow.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;';
+          btnRow.innerHTML = `
+            <a href="${laptop.daraz_url}" target="_blank" style="background:#F57C00;color:white;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px;">🛒 Daraz</a>
+            <a href="${laptop.ikman_url}" target="_blank" style="background:#e53935;color:white;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px;">📌 ikman.lk</a>
+            <a href="${laptop.kapruka_url}" target="_blank" style="background:#1565c0;color:white;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px;">🔎 Google Shop</a>
+            <a href="${laptop.image_url}" target="_blank" style="background:rgba(0,212,255,0.1);color:#00d4ff;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;border:1px solid rgba(0,212,255,0.3);display:inline-flex;align-items:center;gap:5px;">🖼️ Images</a>`;
+          card.appendChild(btnRow);
+
+          contentDiv.appendChild(card);
+        });
+
+        wrapDiv.appendChild(avatarDiv);
+        wrapDiv.appendChild(contentDiv);
+        messages.appendChild(wrapDiv);
+        messages.scrollTop = messages.scrollHeight;
+      }
+    } catch (err) {
+      removeTypingIndicator(typingId);
+      addChatMessage('⚠️ Could not reach the server. Make sure the backend is running on localhost:5000.', 'bot');
+    }
+  }
+  function addChatMessage(text, sender) {
+    const messages = document.getElementById('chat-messages');
+    const isBot = sender === 'bot';
+    const div = document.createElement('div');
+    div.style.cssText = `display:flex; gap:10px; align-items:flex-start; ${isBot ? '' : 'flex-direction:row-reverse;'}`;
+    
+    const avatar = document.createElement('div');
+    avatar.style.cssText = 'width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:16px; flex-shrink:0;';
+    avatar.style.background = isBot ? 'rgba(0,212,255,0.12)' : 'rgba(124,58,237,0.2)';
+    avatar.textContent = isBot ? '🤖' : '👤';
+
+    const bubble = document.createElement('div');
+    bubble.style.cssText = `padding:12px 16px; font-size:14px; max-width:85%; line-height:1.6; ${
+      isBot 
+        ? 'background:#1e2535; border-radius:12px 12px 12px 4px; color:#e6edf3;' 
+        : 'background:rgba(0,212,255,0.15); border-radius:12px 12px 4px 12px; color:#e6edf3; text-align:right;'
+    }`;
+    if (isBot) bubble.classList.add('bot-bubble');
+    bubble.innerHTML = isBot ? (typeof marked !== 'undefined' ? marked.parse(text) : text) : text;
+
+    div.appendChild(avatar);
+    div.appendChild(bubble);
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+    return div;
+  }
+
+  function addTypingIndicator() {
+    const messages = document.getElementById('chat-messages');
+    const id = 'typing-' + Date.now();
+    const div = document.createElement('div');
+    div.id = id;
+    div.style.cssText = 'display:flex; gap:10px; align-items:flex-start;';
+    div.innerHTML = `
+      <div style="width:32px;height:32px;border-radius:8px;background:rgba(0,212,255,0.12);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;">🤖</div>
+      <div style="background:#1e2535;border-radius:12px 12px 12px 4px;padding:12px 16px;">
+        <span style="display:flex;gap:4px;align-items:center;">
+          <span style="width:6px;height:6px;border-radius:50%;background:#00d4ff;animation:bounce 1s infinite 0s"></span>
+          <span style="width:6px;height:6px;border-radius:50%;background:#00d4ff;animation:bounce 1s infinite 0.2s"></span>
+          <span style="width:6px;height:6px;border-radius:50%;background:#00d4ff;animation:bounce 1s infinite 0.4s"></span>
+        </span>
+      </div>`;
+    messages.appendChild(div);
+    messages.scrollTop = messages.scrollHeight;
+    return id;
+  }
+
+  function removeTypingIndicator(id) {
+    const el = document.getElementById(id);
+    if (el) el.remove();
+  }
+</script>
+
+<style>
+  @keyframes bounce {
+    0%,100%{transform:translateY(0)} 
+    50%{transform:translateY(-5px)}
+  }
+</style>
+  <script>
+  // Chatbot Open Sound Effect
+  function playChatbotOpenSound() {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+
+    // Futuristic chime — 3 notes
+    const notes = [523, 659, 784]; // C, E, G
+    notes.forEach((freq, i) => {
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(freq, ctx.currentTime + i * 0.15);
+
+      gain.gain.setValueAtTime(0, ctx.currentTime + i * 0.15);
+      gain.gain.linearRampToValueAtTime(0.3, ctx.currentTime + i * 0.15 + 0.05);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i * 0.15 + 0.4);
+
+      osc.start(ctx.currentTime + i * 0.15);
+      osc.stop(ctx.currentTime + i * 0.15 + 0.4);
+    });
+  }
+
+  // Chatbot button click
+  window.addEventListener("load", () => {
+    const chatBtn = document.querySelector("#chat-toggle-btn"); // 
+    if (chatBtn) {
+      chatBtn.addEventListener("click", playChatbotOpenSound);
+    }
+  });
+</script>
+
+<!-- NAVBAR -->
+<nav>
+  <div class="container nav-inner">
+    <a href="#" class="nav-logo">
+      <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/>
+        <line x1="9" y1="2" x2="9" y2="4"/><line x1="15" y1="2" x2="15" y2="4"/>
+        <line x1="9" y1="20" x2="9" y2="22"/><line x1="15" y1="20" x2="15" y2="22"/>
+        <line x1="20" y1="9" x2="22" y2="9"/><line x1="20" y1="14" x2="22" y2="14"/>
+        <line x1="2" y1="9" x2="4" y2="9"/><line x1="2" y1="14" x2="4" y2="14"/>
+      </svg>
+      PC<span class="logo-accent">Advisor</span>
+    </a>
+    <ul class="nav-links">
+      <li><a href="#how-it-works">How it works</a></li>
+      <li><a href="#use-cases">Use cases</a></li>
+      <li><a href="#features">Features</a></li>
+    </ul>
+    <button class="btn btn-cyan nav-cta" onclick="openModal()">Get Started</button>
+    <button class="hamburger" onclick="toggleMobile()" aria-label="Menu">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+  <div class="mobile-menu" id="mobileMenu">
+    <a href="#how-it-works" onclick="toggleMobile()">How it works</a>
+    <a href="#use-cases" onclick="toggleMobile()">Use cases</a>
+    <a href="#features" onclick="toggleMobile()">Features</a>
+    <a href="#" onclick="openModal();toggleMobile();" style="color:var(--cyan);font-weight:700;">Get Started</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero" id="home">
+  <div class="container hero-inner">
+    <div class="hero-content">
+      <div class="hero-badge">AI-powered buying advisor</div>
+      <h1>Find your <span class="cyan">perfect</span> <span class="purple">PC</span> in 60 seconds.</h1>
+      <p class="hero-sub">Skip the endless spec sheets. Answer a few questions and get tailored recommendations matched to how you actually use a PC.</p>
+      <div class="hero-btns">
+        <button class="btn btn-cyan" onclick="openModal()">Start the quiz &#8594;</button>
+<button class="btn btn-outline" id="chat-toggle-btn" onclick="openChatbot(); playChatbotOpenSound();">💬 AI Chat</button>
+      </div>
+      <div class="hero-stats">
+        <div class="stat"><span class="stat-val">50+</span><span class="stat-label">builds analyzed</span></div>
+        <div class="stat"><span class="stat-val">4.9&#9733;</span><span class="stat-label">user rating</span></div>
+        <div class="stat"><span class="stat-val">60s</span><span class="stat-label">to a match</span></div>
+      </div>
+    </div>
+    <div class="hero-visual">
+      <div class="pc-wrap">
+        <div class="glow-ring"></div>
+        <div class="orbit orbit-1"><div class="orbit-dot dot-cyan"></div></div>
+        <div class="orbit orbit-2"><div class="orbit-dot dot-purple"></div></div>
+       <svg class="pc-illustration" width="260" height="260" viewBox="0 0 260 260" fill="none" xmlns="http://www.w3.org/2000/svg" onclick="openSAGE()" style="cursor:pointer;">
+          <rect x="40" y="30" width="180" height="130" rx="10" fill="#161b27" stroke="#00d4ff" stroke-width="2"/>
+          <rect x="52" y="42" width="156" height="106" rx="6" fill="#0a0f1e"/>
+          <!-- Screen glow content -->
+          <rect x="65" y="55" width="80" height="8" rx="4" fill="#00d4ff" opacity="0.7"/>
+          <rect x="65" y="70" width="120" height="5" rx="2.5" fill="#7c3aed" opacity="0.5"/>
+          <rect x="65" y="82" width="100" height="5" rx="2.5" fill="#7c3aed" opacity="0.4"/>
+          <rect x="65" y="94" width="110" height="5" rx="2.5" fill="#7c3aed" opacity="0.3"/>
+          <rect x="65" y="110" width="60" height="22" rx="6" fill="#00d4ff" opacity="0.15" stroke="#00d4ff" stroke-width="1.5"/>
+          <text x="95" y="125" font-size="9" fill="#00d4ff" text-anchor="middle" font-family="sans-serif">Analyze</text>
+          <!-- Stand -->
+          <rect x="115" y="160" width="30" height="20" rx="2" fill="#1e2535" stroke="#00d4ff" stroke-width="1.5" opacity="0.8"/>
+          <rect x="95" y="178" width="70" height="8" rx="4" fill="#1e2535" stroke="#00d4ff" stroke-width="1.5" opacity="0.8"/>
+          <!-- Keyboard -->
+          <rect x="55" y="200" width="150" height="40" rx="6" fill="#161b27" stroke="#7c3aed" stroke-width="1.5"/>
+          <rect x="65" y="208" width="130" height="6" rx="3" fill="#1e2535"/>
+          <rect x="65" y="220" width="130" height="6" rx="3" fill="#1e2535"/>
+          <rect x="80" y="232" width="100" height="4" rx="2" fill="#1e2535"/>
+          <!-- Keys highlight -->
+          <rect x="68" y="209" width="10" height="4" rx="1" fill="#00d4ff" opacity="0.4"/>
+          <rect x="82" y="209" width="10" height="4" rx="1" fill="#7c3aed" opacity="0.4"/>
+          <rect x="96" y="209" width="10" height="4" rx="1" fill="#00d4ff" opacity="0.3"/>
+        </svg>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how-it-works">
+  <div class="container">
+    <h2 class="section-title">How it works</h2>
+    <p class="section-sub">Three simple steps to your perfect PC recommendation.</p>
+    <div class="steps">
+      <div class="step-card">
+        <div class="step-num">01</div>
+        <div class="step-icon">&#128176;</div>
+        <h3>Set your budget</h3>
+        <p>Tell us how much you want to spend in LKR. We will find the best value builds within your range.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">02</div>
+        <div class="step-icon">&#127918;</div>
+        <h3>Pick your use case</h3>
+        <p>Gaming, office work, video editing, programming or general use. We tailor every recommendation to your needs.</p>
+      </div>
+      <div class="step-card">
+        <div class="step-num">03</div>
+        <div class="step-icon">&#129302;</div>
+        <h3>Get AI recommendation</h3>
+        <p>Our AI advisor instantly generates a detailed component list with prices and explains why each part suits you.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- USE CASES -->
+<section id="use-cases">
+  <div class="container">
+    <h2 class="section-title">Built for every use case</h2>
+    <p class="section-sub">Whether you are a gamer, creator, or professional, we have the right build for you.</p>
+    <div class="uc-grid">
+      <div class="uc-card" onclick="openModalWithUseCase('gaming')">
+        <span class="uc-emoji">&#127918;</span>
+        <h3>Gaming</h3>
+        <p>High FPS, smooth gameplay, best GPU for your budget</p>
+      </div>
+      <div class="uc-card" onclick="openModalWithUseCase('office')">
+        <span class="uc-emoji">&#128188;</span>
+        <h3>Office</h3>
+        <p>Reliable, efficient builds for productivity and multitasking</p>
+      </div>
+      <div class="uc-card" onclick="openModalWithUseCase('video editing')">
+        <span class="uc-emoji">&#127916;</span>
+        <h3>Video Editing</h3>
+        <p>Fast renders, colour accuracy, and plenty of RAM</p>
+      </div>
+      <div class="uc-card" onclick="openModalWithUseCase('programming')">
+        <span class="uc-emoji">&#128187;</span>
+        <h3>Programming</h3>
+        <p>Multi-core performance and fast storage for dev workflows</p>
+      </div>
+      <div class="uc-card" onclick="openModalWithUseCase('general use')">
+        <span class="uc-emoji">&#127760;</span>
+        <h3>General Use</h3>
+        <p>Balanced builds for browsing, streaming, and everyday tasks</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FEATURES -->
+<section id="features">
+  <div class="container">
+    <h2 class="section-title">Why PCAdvisor?</h2>
+    <p class="section-sub">Smart recommendations powered by AI, built for Sri Lankan buyers.</p>
+    <div class="feat-grid">
+      <div class="feat-card">
+        <div class="feat-icon c">&#129302;</div>
+        <h3>AI-Powered Analysis</h3>
+        <p>Llama 3.3 70B analyses thousands of component combinations to find the best match for your exact needs and budget.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon p">&#127475;&#127473;</div>
+        <h3>Sri Lanka Pricing</h3>
+        <p>All recommendations include real LKR prices from local suppliers, so you know exactly what to expect at the shop.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon c">&#9889;</div>
+        <h3>60-Second Results</h3>
+        <p>No lengthy forms or endless comparisons. Answer three quick questions and get a full build recommendation instantly.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon p">&#128295;</div>
+        <h3>Custom or Prebuilt</h3>
+        <p>We recommend whichever option gives you better value, whether that is a custom build or an off-the-shelf system.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon c">&#128200;</div>
+        <h3>Alternative Options</h3>
+        <p>Every recommendation includes an alternative build so you can compare and choose what fits your priorities best.</p>
+      </div>
+      <div class="feat-card">
+        <div class="feat-icon p">&#128241;</div>
+        <h3>Mobile Friendly</h3>
+        <p>Use PCAdvisor on any device. The responsive design works perfectly on phones, tablets, and desktops.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- QUIZ MODAL -->
+<div class="overlay" id="overlay" onclick="handleOverlayClick(event)">
+  <div class="modal" id="modal">
+    <button class="modal-close" onclick="closeModal()" aria-label="Close">&times;</button>
+
+    <!-- Progress -->
+    <div class="progress-wrap">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:33%"></div></div>
+      <span class="progress-label" id="progressLabel">Step 1 of 3</span>
+    </div>
+
+    <!-- Step 1: Budget -->
+    <div class="quiz-step active" id="step1">
+      <h2>What is your budget?</h2>
+      <p class="step-hint">Enter the maximum amount you want to spend on your PC build.</p>
+      <div class="input-wrap">
+        <span class="input-prefix">LKR</span>
+        <input type="number" id="budgetInput" placeholder="e.g. 150000" min="0" />
+      </div>
+    </div>
+
+    <!-- Step 2: Use Case -->
+    <div class="quiz-step" id="step2">
+      <h2>What will you use it for?</h2>
+      <p class="step-hint">Select the primary use case for your new PC.</p>
+      <div class="uc-options" id="ucOptions">
+        <div class="uc-opt" onclick="selectUseCase(this,'gaming')">
+          <span class="oe">&#127918;</span><span class="ol">Gaming</span>
+        </div>
+        <div class="uc-opt" onclick="selectUseCase(this,'office')">
+          <span class="oe">&#128188;</span><span class="ol">Office</span>
+        </div>
+        <div class="uc-opt" onclick="selectUseCase(this,'video editing')">
+          <span class="oe">&#127916;</span><span class="ol">Video Editing</span>
+        </div>
+        <div class="uc-opt" onclick="selectUseCase(this,'programming')">
+          <span class="oe">&#128187;</span><span class="ol">Programming</span>
+        </div>
+        <div class="uc-opt" onclick="selectUseCase(this,'general use')">
+          <span class="oe">&#127760;</span><span class="ol">General Use</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Step 3: Preferences -->
+    <div class="quiz-step" id="step3">
+      <h2>Any preferences?</h2>
+      <p class="step-hint">Optional: mention brand preferences, specific components, or anything else.</p>
+      <textarea class="pref-area" id="prefInput" placeholder="e.g. prefer AMD, need Wi-Fi, want RGB lighting..."></textarea>
+    </div>
+
+    <!-- Loading -->
+    <div class="loading-wrap" id="loadingWrap">
+      <div class="spinner"></div>
+      <p class="loading-text">Analysing the best builds for you...</p>
+    </div>
+
+    <!-- Nav buttons -->
+    <div class="modal-nav" id="modalNav">
+      <button class="btn-back" id="backBtn" onclick="prevStep()" style="visibility:hidden">&#8592; Back</button>
+      <button class="btn btn-cyan" id="nextBtn" onclick="nextStep()">Next &#8594;</button>
+    </div>
+  </div>
+</div>
+
+<!-- RESULTS -->
+<section id="results">
+  <div class="container">
+    <div class="result-card">
+      <div class="result-header">
+        <div class="result-icon">&#129302;</div>
+        <div>
+          <h2>Your PC Recommendation</h2>
+          <p id="resultMeta">Personalised for your budget and use case</p>
+        </div>
+      </div>
+      <div class="result-body" id="resultBody"></div>
+      <div class="result-footer">
+        <button class="btn btn-cyan" onclick="startOver()">&#8635; Start Over</button>
+        <button class="btn btn-outline" onclick="openModal()">Refine Search</button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="container">
+    <p>&#169; 2026 <span>PCAdvisor</span> &mdash; AI-powered PC recommendations for Sri Lanka</p>
+  </div>
+</footer>
+
+<!-- ERROR TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+  // ── State ──
+  let currentStep = 1;
+  const totalSteps = 3;
+  let selectedUseCase = '';
+  let preselectedUseCase = '';
+
+  // ── Modal ──
+  function openModal() {
+    resetQuiz();
+    document.getElementById('overlay').classList.add('active');
+    document.body.style.overflow = 'hidden';
+    if (preselectedUseCase) {
+      goToStep(2);
+      const opts = document.querySelectorAll('.uc-opt');
+      opts.forEach(o => {
+        if (o.querySelector('.ol').textContent.toLowerCase() === preselectedUseCase.toLowerCase()) {
+          selectUseCase(o, preselectedUseCase);
+        }
+      });
+      preselectedUseCase = '';
+    }
+  }
+
+  function openModalWithUseCase(uc) {
+    preselectedUseCase = uc;
+    openModal();
+  }
+
+  function closeModal() {
+    document.getElementById('overlay').classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  function handleOverlayClick(e) {
+    if (e.target === document.getElementById('overlay')) closeModal();
+  }
+
+  // ── Mobile menu ──
+  function toggleMobile() {
+    document.getElementById('mobileMenu').classList.toggle('open');
+  }
+
+  // ── Quiz navigation ──
+  function goToStep(n) {
+    document.getElementById('step' + currentStep).classList.remove('active');
+    currentStep = n;
+    document.getElementById('step' + currentStep).classList.add('active');
+    updateProgress();
+    updateNavButtons();
+  }
+
+  function nextStep() {
+    if (currentStep === 1) {
+      const budget = document.getElementById('budgetInput').value.trim();
+      if (!budget || isNaN(budget) || Number(budget) <= 0) {
+        showToast('Please enter a valid budget amount.');
+        return;
+      }
+      goToStep(2);
+    } else if (currentStep === 2) {
+      if (!selectedUseCase) {
+        showToast('Please select a use case.');
+        return;
+      }
+      goToStep(3);
+    } else if (currentStep === 3) {
+      submitQuiz();
+    }
+  }
+
+  function prevStep() {
+    if (currentStep > 1) goToStep(currentStep - 1);
+  }
+
+  function updateProgress() {
+    const pct = (currentStep / totalSteps) * 100;
+    document.getElementById('progressFill').style.width = pct + '%';
+    document.getElementById('progressLabel').textContent = 'Step ' + currentStep + ' of ' + totalSteps;
+  }
+
+  function updateNavButtons() {
+    const backBtn = document.getElementById('backBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    backBtn.style.visibility = currentStep > 1 ? 'visible' : 'hidden';
+    if (currentStep === totalSteps) {
+      nextBtn.textContent = 'Get My Recommendation \u2728';
+    } else {
+      nextBtn.textContent = 'Next \u2192';
+    }
+  }
+
+  function selectUseCase(el, uc) {
+    document.querySelectorAll('.uc-opt').forEach(o => o.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedUseCase = uc;
+  }
+
+  function resetQuiz() {
+    currentStep = 1;
+    selectedUseCase = '';
+    document.querySelectorAll('.quiz-step').forEach(s => s.classList.remove('active'));
+    document.getElementById('step1').classList.add('active');
+    document.getElementById('budgetInput').value = '';
+    document.getElementById('prefInput').value = '';
+    document.querySelectorAll('.uc-opt').forEach(o => o.classList.remove('selected'));
+    document.getElementById('loadingWrap').classList.remove('active');
+    document.getElementById('modalNav').style.display = 'flex';
+    updateProgress();
+    updateNavButtons();
+  }
+
+  // ── API call ──
+  async function submitQuiz() {
+    const budget = document.getElementById('budgetInput').value.trim();
+    const useCase = selectedUseCase;
+    const prefs = document.getElementById('prefInput').value.trim() || 'no specific preferences';
+
+    // Show loading
+    document.querySelectorAll('.quiz-step').forEach(s => s.classList.remove('active'));
+    document.getElementById('loadingWrap').classList.add('active');
+    document.getElementById('modalNav').style.display = 'none';
+
+    try {
+      const res = await fetch('http://localhost:5000/recommend', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          budget: budget + ' LKR',
+          use_case: useCase,
+          preferences: prefs
+        })
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || 'Server returned ' + res.status);
+      }
+
+      const data = await res.json();
+      closeModal();
+      showResults(data.recommendation, budget, useCase);
+
+    } catch (err) {
+      document.getElementById('loadingWrap').classList.remove('active');
+      document.getElementById('modalNav').style.display = 'flex';
+      document.getElementById('step3').classList.add('active');
+      showToast('Error: ' + (err.message || 'Could not reach the server. Make sure the backend is running.'));
+    }
+  }
+
+  // ── Results ──
+  function showResults(markdown, budget, useCase) {
+    const resultsEl = document.getElementById('results');
+    const bodyEl = document.getElementById('resultBody');
+    const metaEl = document.getElementById('resultMeta');
+
+    metaEl.textContent = 'Budget: LKR ' + Number(budget).toLocaleString() + ' \u2022 Use case: ' + capitalize(useCase);
+    bodyEl.innerHTML = typeof marked !== 'undefined' ? marked.parse(markdown) : markdown;
+    resultsEl.classList.add('active');
+    resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function startOver() {
+    document.getElementById('results').classList.remove('active');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  }
+
+  // ── Toast ──
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 4000);
+  }
+
+  // ── Helpers ──
+  function capitalize(s) {
+    return s.charAt(0).toUpperCase() + s.slice(1);
+  }
+
+  // ── Keyboard ──
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeModal();
+    if (e.key === 'Enter' && document.getElementById('overlay').classList.contains('active')) {
+      if (!document.getElementById('loadingWrap').classList.contains('active')) nextStep();
+    }
+  });
+</script>
+</body>
+</html>
