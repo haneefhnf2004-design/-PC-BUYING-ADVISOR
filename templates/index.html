@@ -261,7 +261,7 @@
     <div style="font-family:monospace; font-size:10px; color:#8b949e; letter-spacing:3px; margin-bottom:8px;">PROJECT: PCADVISOR</div>
 
     <!-- Status -->
-    <div id="sage-status" style="font-family:monospace; font-size:12px; color:#00d4ff; margin-bottom:16px; min-height:18px; letter-spacing:1px;">● SYSTEMS ONLINE</div>
+    <div id="sage-status" style="font-family:monospace; font-size:12px; color:#00d4ff; margin-bottom:16px; min-height:18px; letter-spacing:1px;">● READY — Ask me anything!</div>
 
     <!-- Terminal -->
     <div id="sage-terminal" style="width:100%; max-width:680px; height:200px; overflow-y:auto; background:rgba(0,0,0,0.4); border-top:1px solid rgba(255,255,255,0.05); border-bottom:1px solid rgba(255,255,255,0.05); padding:16px 28px; font-family:monospace; font-size:13px; line-height:1.9;">
@@ -269,13 +269,13 @@
   </div>
 
   <!-- Text Input (above toolbar) -->
-  <div id="sage-input-row" style="display:none; width:100%; max-width:680px; padding:12px 24px 0; margin:0 auto;">
+  <div id="sage-input-row" style="display:block; width:100%; max-width:680px; padding:12px 24px 0; margin:0 auto;">
     <div style="display:flex; gap:8px;">
       <input id="sage-text-input" type="text" placeholder="Ask SAGE about laptops or PCs..."
         style="flex:1; padding:11px 16px; background:#0d1117; border:1px solid rgba(0,212,255,0.3); border-radius:10px; color:#e6edf3; font-size:13px; font-family:monospace; outline:none;"
-        onkeydown="if(event.key==='Enter'){askSAGE(this.value); this.value=''; document.getElementById('sage-input-row').style.display='none';}"
+        onkeydown="if(event.key==='Enter'){askSAGE(this.value); this.value='';}"
       />
-      <button onclick="const v=document.getElementById('sage-text-input').value; askSAGE(v); document.getElementById('sage-text-input').value=''; document.getElementById('sage-input-row').style.display='none';"
+      <button onclick="const v=document.getElementById('sage-text-input').value; askSAGE(v); document.getElementById('sage-text-input').value='';"
         style="background:#00d4ff; color:#0d1117; border:none; border-radius:10px; width:42px; height:42px; cursor:pointer; font-size:16px; font-weight:700;">➤</button>
     </div>
   </div>
@@ -295,7 +295,7 @@
       <div style="width:1px; height:28px; background:rgba(255,255,255,0.08);"></div>
 
       <!-- Type -->
-      <button onclick="const r=document.getElementById('sage-input-row'); r.style.display=r.style.display==='none'?'block':'none';" title="Type a message"
+      <button onclick="document.getElementById('sage-text-input').focus();" title="Type a message"
         style="width:46px; height:46px; border-radius:50%; background:transparent; border:1px solid rgba(255,255,255,0.1); color:#8b949e; cursor:pointer; font-size:20px; display:flex; align-items:center; justify-content:center; transition:all 0.2s;">💬</button>
 
       <!-- Clear -->
@@ -303,7 +303,7 @@
         style="width:46px; height:46px; border-radius:50%; background:transparent; border:1px solid rgba(255,255,255,0.1); color:#8b949e; cursor:pointer; font-size:20px; display:flex; align-items:center; justify-content:center; transition:all 0.2s;">🗑</button>
 
       <!-- Stop Speech -->
-      <button onclick="window.speechSynthesis&&window.speechSynthesis.cancel(); setSAGEStatus('● READY');" title="Stop speaking"
+      <button onclick="window.speechSynthesis&&window.speechSynthesis.cancel(); setSAGEStatus('● READY — Ask me anything!');" title="Stop speaking"
         style="width:46px; height:46px; border-radius:50%; background:transparent; border:1px solid rgba(255,255,255,0.1); color:#8b949e; cursor:pointer; font-size:20px; display:flex; align-items:center; justify-content:center; transition:all 0.2s;">⏹</button>
 
     </div>
@@ -343,8 +343,8 @@
     document.body.style.overflow = 'hidden';
     playSAGEOpenSound();
     setTimeout(() => {
-      sageTerminalLog('SAGE', 'Good day! Systems are fully operational. Awaiting commands.');
-      speakSAGE('Good day! I am SAGE, your smart advisor for gadget evaluation. How can I help you today?');
+      sageTerminalLog('SAGE', "Hi! I'm your AI laptop advisor. Ask me anything — just speak or type below! 🎤");
+      speakSAGE("Hi! I'm your AI laptop advisor. Ask me anything, just speak or type below!");
     }, 300);
   }
 
@@ -495,7 +495,7 @@
     }
     const ring = document.getElementById('sage-ring-outer');
     if (ring) ring.style.animation = '';
-    setSAGEStatus('● READY');
+    setSAGEStatus('● READY — Ask me anything!');
   }
 
   async function askSAGE(query) {
@@ -531,7 +531,7 @@
         return;
       } else {
         sageTerminalLog('SAGE', 'No link found yet. Ask me for a laptop recommendation first, then say open Daraz or open Kapruka.');
-        setSAGEStatus('● READY');
+        setSAGEStatus('● READY — Ask me anything!');
         speakSAGE('Please ask for a laptop recommendation first, then I can open the link for you.');
         return;
       }
@@ -666,7 +666,7 @@
       document.getElementById('sage-ring-outer').style.animation = 'sage-listen-pulse 1s ease-in-out infinite';
     };
     utterance.onend = () => {
-      setSAGEStatus('● READY');
+      setSAGEStatus('● READY — Ask me anything!');
       document.getElementById('sage-ring-outer').style.animation = '';
     };
 
@@ -1016,7 +1016,8 @@ async function sendChatMessage() {
       <p class="hero-sub">Skip the endless spec sheets. Answer a few questions and get tailored recommendations matched to how you actually use a PC.</p>
       <div class="hero-btns">
         <button class="btn btn-cyan" onclick="openModal()">Start the quiz &#8594;</button>
-<button class="btn btn-outline" id="chat-toggle-btn" onclick="openChatbot(); playChatbotOpenSound();">💬 AI Chat</button>
+        <button class="btn btn-outline" id="chat-toggle-btn" onclick="openChatbot(); playChatbotOpenSound();">💬 AI Chat</button>
+        <button class="btn btn-outline" onclick="openSAGE()" style="border-color:rgba(0,212,255,0.4); color:var(--cyan);">🎤 Voice</button>
       </div>
       <div class="hero-stats">
         <div class="stat"><span class="stat-val">50+</span><span class="stat-label">builds analyzed</span></div>
@@ -1025,33 +1026,35 @@ async function sendChatMessage() {
       </div>
     </div>
     <div class="hero-visual">
-      <div class="pc-wrap">
-        <div class="glow-ring"></div>
-        <div class="orbit orbit-1"><div class="orbit-dot dot-cyan"></div></div>
-        <div class="orbit orbit-2"><div class="orbit-dot dot-purple"></div></div>
-       <svg class="pc-illustration" width="260" height="260" viewBox="0 0 260 260" fill="none" xmlns="http://www.w3.org/2000/svg" onclick="openSAGE()" style="cursor:pointer;">
-          <rect x="40" y="30" width="180" height="130" rx="10" fill="#161b27" stroke="#00d4ff" stroke-width="2"/>
-          <rect x="52" y="42" width="156" height="106" rx="6" fill="#0a0f1e"/>
-          <!-- Screen glow content -->
-          <rect x="65" y="55" width="80" height="8" rx="4" fill="#00d4ff" opacity="0.7"/>
-          <rect x="65" y="70" width="120" height="5" rx="2.5" fill="#7c3aed" opacity="0.5"/>
-          <rect x="65" y="82" width="100" height="5" rx="2.5" fill="#7c3aed" opacity="0.4"/>
-          <rect x="65" y="94" width="110" height="5" rx="2.5" fill="#7c3aed" opacity="0.3"/>
-          <rect x="65" y="110" width="60" height="22" rx="6" fill="#00d4ff" opacity="0.15" stroke="#00d4ff" stroke-width="1.5"/>
-          <text x="95" y="125" font-size="9" fill="#00d4ff" text-anchor="middle" font-family="sans-serif">Analyze</text>
-          <!-- Stand -->
-          <rect x="115" y="160" width="30" height="20" rx="2" fill="#1e2535" stroke="#00d4ff" stroke-width="1.5" opacity="0.8"/>
-          <rect x="95" y="178" width="70" height="8" rx="4" fill="#1e2535" stroke="#00d4ff" stroke-width="1.5" opacity="0.8"/>
-          <!-- Keyboard -->
-          <rect x="55" y="200" width="150" height="40" rx="6" fill="#161b27" stroke="#7c3aed" stroke-width="1.5"/>
-          <rect x="65" y="208" width="130" height="6" rx="3" fill="#1e2535"/>
-          <rect x="65" y="220" width="130" height="6" rx="3" fill="#1e2535"/>
-          <rect x="80" y="232" width="100" height="4" rx="2" fill="#1e2535"/>
-          <!-- Keys highlight -->
-          <rect x="68" y="209" width="10" height="4" rx="1" fill="#00d4ff" opacity="0.4"/>
-          <rect x="82" y="209" width="10" height="4" rx="1" fill="#7c3aed" opacity="0.4"/>
-          <rect x="96" y="209" width="10" height="4" rx="1" fill="#00d4ff" opacity="0.3"/>
-        </svg>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:20px;">
+        <div class="pc-wrap">
+          <div class="glow-ring"></div>
+          <div class="orbit orbit-1"><div class="orbit-dot dot-cyan"></div></div>
+          <div class="orbit orbit-2"><div class="orbit-dot dot-purple"></div></div>
+         <svg class="pc-illustration" width="260" height="260" viewBox="0 0 260 260" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <rect x="40" y="30" width="180" height="130" rx="10" fill="#161b27" stroke="#00d4ff" stroke-width="2"/>
+            <rect x="52" y="42" width="156" height="106" rx="6" fill="#0a0f1e"/>
+            <!-- Screen glow content -->
+            <rect x="65" y="55" width="80" height="8" rx="4" fill="#00d4ff" opacity="0.7"/>
+            <rect x="65" y="70" width="120" height="5" rx="2.5" fill="#7c3aed" opacity="0.5"/>
+            <rect x="65" y="82" width="100" height="5" rx="2.5" fill="#7c3aed" opacity="0.4"/>
+            <rect x="65" y="94" width="110" height="5" rx="2.5" fill="#7c3aed" opacity="0.3"/>
+            <rect x="65" y="110" width="60" height="22" rx="6" fill="#00d4ff" opacity="0.15" stroke="#00d4ff" stroke-width="1.5"/>
+            <text x="95" y="125" font-size="9" fill="#00d4ff" text-anchor="middle" font-family="sans-serif">Analyze</text>
+            <!-- Stand -->
+            <rect x="115" y="160" width="30" height="20" rx="2" fill="#1e2535" stroke="#00d4ff" stroke-width="1.5" opacity="0.8"/>
+            <rect x="95" y="178" width="70" height="8" rx="4" fill="#1e2535" stroke="#00d4ff" stroke-width="1.5" opacity="0.8"/>
+            <!-- Keyboard -->
+            <rect x="55" y="200" width="150" height="40" rx="6" fill="#161b27" stroke="#7c3aed" stroke-width="1.5"/>
+            <rect x="65" y="208" width="130" height="6" rx="3" fill="#1e2535"/>
+            <rect x="65" y="220" width="130" height="6" rx="3" fill="#1e2535"/>
+            <rect x="80" y="232" width="100" height="4" rx="2" fill="#1e2535"/>
+            <!-- Keys highlight -->
+            <rect x="68" y="209" width="10" height="4" rx="1" fill="#00d4ff" opacity="0.4"/>
+            <rect x="82" y="209" width="10" height="4" rx="1" fill="#7c3aed" opacity="0.4"/>
+            <rect x="96" y="209" width="10" height="4" rx="1" fill="#00d4ff" opacity="0.3"/>
+          </svg>
+        </div>
       </div>
     </div>
   </div>
@@ -1167,14 +1170,14 @@ async function sendChatMessage() {
 
     <!-- Progress -->
     <div class="progress-wrap">
-      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:33%"></div></div>
-      <span class="progress-label" id="progressLabel">Step 1 of 3</span>
+      <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:25%"></div></div>
+      <span class="progress-label" id="progressLabel">Step 1 of 4</span>
     </div>
 
     <!-- Step 1: Budget -->
     <div class="quiz-step active" id="step1">
       <h2>What is your budget?</h2>
-      <p class="step-hint">Enter the maximum amount you want to spend on your PC build.</p>
+      <p class="step-hint">Enter the maximum amount you want to spend on your PC.</p>
       <div class="input-wrap">
         <span class="input-prefix">LKR</span>
         <input type="number" id="budgetInput" placeholder="e.g. 150000" min="0" />
@@ -1186,28 +1189,35 @@ async function sendChatMessage() {
       <h2>What will you use it for?</h2>
       <p class="step-hint">Select the primary use case for your new PC.</p>
       <div class="uc-options" id="ucOptions">
-        <div class="uc-opt" onclick="selectUseCase(this,'gaming')">
-          <span class="oe">&#127918;</span><span class="ol">Gaming</span>
-        </div>
-        <div class="uc-opt" onclick="selectUseCase(this,'office')">
-          <span class="oe">&#128188;</span><span class="ol">Office</span>
-        </div>
-        <div class="uc-opt" onclick="selectUseCase(this,'video editing')">
-          <span class="oe">&#127916;</span><span class="ol">Video Editing</span>
-        </div>
-        <div class="uc-opt" onclick="selectUseCase(this,'programming')">
-          <span class="oe">&#128187;</span><span class="ol">Programming</span>
-        </div>
-        <div class="uc-opt" onclick="selectUseCase(this,'general use')">
-          <span class="oe">&#127760;</span><span class="ol">General Use</span>
-        </div>
+        <div class="uc-opt" onclick="selectUseCase(this,'gaming')"><span class="oe">&#127918;</span><span class="ol">Gaming</span></div>
+        <div class="uc-opt" onclick="selectUseCase(this,'office')"><span class="oe">&#128188;</span><span class="ol">Office</span></div>
+        <div class="uc-opt" onclick="selectUseCase(this,'video editing')"><span class="oe">&#127916;</span><span class="ol">Video Editing</span></div>
+        <div class="uc-opt" onclick="selectUseCase(this,'programming')"><span class="oe">&#128187;</span><span class="ol">Programming</span></div>
+        <div class="uc-opt" onclick="selectUseCase(this,'data science')"><span class="oe">&#128200;</span><span class="ol">Data Science</span></div>
+        <div class="uc-opt" onclick="selectUseCase(this,'general use')"><span class="oe">&#127760;</span><span class="ol">General Use</span></div>
       </div>
     </div>
 
-    <!-- Step 3: Preferences -->
+    <!-- Step 3: Location -->
     <div class="quiz-step" id="step3">
+      <h2>Where are you located?</h2>
+      <p class="step-hint">We'll show products available in your area.</p>
+      <div class="uc-options" id="locationOptions" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="uc-opt" onclick="selectLocation(this,'Colombo')"><span class="oe">&#127963;</span><span class="ol">Colombo</span></div>
+        <div class="uc-opt" onclick="selectLocation(this,'Kandy')"><span class="oe">&#127956;</span><span class="ol">Kandy</span></div>
+        <div class="uc-opt" onclick="selectLocation(this,'Galle')"><span class="oe">&#9968;</span><span class="ol">Galle</span></div>
+        <div class="uc-opt" onclick="selectLocation(this,'Jaffna')"><span class="oe">&#127757;</span><span class="ol">Jaffna</span></div>
+        <div class="uc-opt" onclick="selectLocation(this,'Negombo')"><span class="oe">&#127754;</span><span class="ol">Negombo</span></div>
+        <div class="uc-opt" onclick="selectLocation(this,'Kurunegala')"><span class="oe">&#127748;</span><span class="ol">Kurunegala</span></div>
+        <div class="uc-opt" onclick="selectLocation(this,'Anuradhapura')"><span class="oe">&#127981;</span><span class="ol">Anuradhapura</span></div>
+        <div class="uc-opt" onclick="selectLocation(this,'')"><span class="oe">&#127758;</span><span class="ol">All Areas</span></div>
+      </div>
+    </div>
+
+    <!-- Step 4: Preferences -->
+    <div class="quiz-step" id="step4">
       <h2>Any preferences?</h2>
-      <p class="step-hint">Optional: mention brand preferences, specific components, or anything else.</p>
+      <p class="step-hint">Optional: brand preferences, specific components, or anything else.</p>
       <textarea class="pref-area" id="prefInput" placeholder="e.g. prefer AMD, need Wi-Fi, want RGB lighting..."></textarea>
     </div>
 
@@ -1444,5 +1454,23 @@ async function sendChatMessage() {
     }
   });
 </script>
+<!-- ── Floating Voice Button ── -->
+<button
+  class="fab fab-voice"
+  data-tooltip="Ask with Voice"
+  onclick="openSAGE()"
+  aria-label="Open voice assistant"
+  title="Ask with Voice"
+>🎤</button>
+
+<!-- ── Floating Chat Button ── -->
+<button
+  class="fab fab-chat"
+  data-tooltip="AI Chat"
+  onclick="openChatbot(); if(typeof playChatbotOpenSound==='function') playChatbotOpenSound();"
+  aria-label="Open AI chatbot"
+  title="AI Chat"
+>💬</button>
+
 </body>
 </html>

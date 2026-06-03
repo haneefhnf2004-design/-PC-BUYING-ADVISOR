@@ -1,91 +1,153 @@
+"""
+PCAdvisor — Model Training Script
+Trains three models as specified in the project proposal:
+  1. Random Forest  → value scoring / ranking
+  2. KNN            → recommendation (find similar laptops)
+  3. Ridge Regression → price prediction
+Run from the backend/ directory: python train_model.py
+"""
 import pandas as pd
 import numpy as np
 from sklearn.ensemble import RandomForestRegressor
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.linear_model import Ridge
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.metrics import mean_absolute_error, r2_score
 import pickle
+import os
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+ROOT_DIR = os.path.dirname(BASE_DIR)
 
 # ── Load dataset ──────────────────────────────────────────────────────────────
-df = pd.read_csv("../dataset/pc_advisor_laptop_dataset.csv")
+df = pd.read_csv(os.path.join(ROOT_DIR, "dataset", "pc_advisor_laptop_dataset.csv"))
 print(f"✅ Loaded {len(df)} laptops")
-print(f"Columns: {list(df.columns)}")
+print(f"   Columns: {list(df.columns)}")
 
 # ── Clean columns ─────────────────────────────────────────────────────────────
-# Remove "GB" from RAM and Storage
-df["RAM"] = df["RAM"].astype(str).str.replace("GB", "").str.strip()
-df["RAM"] = pd.to_numeric(df["RAM"], errors="coerce")
-
-df["Storage"] = df["Storage"].astype(str).str.replace("GB", "").str.replace("TB", "000").str.strip()
-df["Storage"] = pd.to_numeric(df["Storage"], errors="coerce")
-
-# Extract screen size number from string like '14.0" FHD'
-df["Screen"] = df["Screen"].astype(str).str.extract(r'(\d+\.?\d*)').astype(float)
-
-# Price is already in LKR
+df["RAM"] = pd.to_numeric(df["RAM"].astype(str).str.replace("GB","").str.strip(), errors="coerce")
+df["Storage"] = pd.to_numeric(
+    df["Storage"].astype(str).str.replace("GB","").str.replace("TB","000").str.strip(), errors="coerce"
+)
+df["Screen"] = df["Screen"].astype(str).str.extract(r"(\d+\.?\d*)").astype(float)
 df["Price_LKR"] = pd.to_numeric(df["Final Price (LKR)"], errors="coerce")
-
 df = df.dropna(subset=["Price_LKR", "RAM", "Storage"])
 print(f"✅ After cleaning: {len(df)} laptops")
 
 # ── Feature engineering ───────────────────────────────────────────────────────
-df["value_score"] = (
-    (df["RAM"] / df["Price_LKR"]) * 100000 +
-    (df["Storage"] / df["Price_LKR"]) * 10000
-)
-
 df["has_discrete_gpu"] = df["GPU"].apply(
     lambda x: 0 if pd.isna(x) or str(x).strip() == "" or
-    any(k in str(x).lower() for k in ["intel", "integrated", "uhd", "iris"])
-    else 1
+    any(k in str(x).lower() for k in ["intel","integrated","uhd","iris"]) else 1
 )
+
+def cpu_tier(cpu):
+    c = str(cpu).lower()
+    if any(k in c for k in ["i9","ryzen 9","ultra 9"]): return 3
+    if any(k in c for k in ["i7","ryzen 7","ultra 7"]): return 2
+    if any(k in c for k in ["i5","ryzen 5","ultra 5"]): return 1
+    return 0
+
+df["cpu_tier"] = df["CPU"].apply(cpu_tier)
 
 le_brand = LabelEncoder()
 df["brand_encoded"] = le_brand.fit_transform(df["Brand"].fillna("Unknown"))
 
-def cpu_tier(cpu):
-    cpu = str(cpu).lower()
-    if "i9" in cpu or "ryzen 9" in cpu or "ultra 9" in cpu:
-        return 3
-    elif "i7" in cpu or "ryzen 7" in cpu or "ultra 7" in cpu:
-        return 2
-    elif "i5" in cpu or "ryzen 5" in cpu or "ultra 5" in cpu:
-        return 1
-    else:
-        return 0
+le_region = LabelEncoder()
+if "Region" in df.columns:
+    df["region_encoded"] = le_region.fit_transform(df["Region"].fillna("Colombo"))
+else:
+    df["region_encoded"] = 0
 
-df["cpu_tier"] = df["CPU"].apply(cpu_tier)
+# Value score (target for RF)
+df["value_score"] = (
+    (df["RAM"] / df["Price_LKR"]) * 100_000 +
+    (df["Storage"] / df["Price_LKR"]) * 10_000 +
+    df["has_discrete_gpu"] * 0.5 +
+    (df["cpu_tier"] / 3) * 0.5
+)
 
-# ── Features and target ───────────────────────────────────────────────────────
-features = ["RAM", "Storage", "Price_LKR", "has_discrete_gpu", "brand_encoded", "cpu_tier"]
-X = df[features]
-y = df["value_score"]
+FEATURES     = ["RAM", "Storage", "Price_LKR", "has_discrete_gpu", "brand_encoded", "cpu_tier"]
+FEAT_KNN     = ["RAM", "Storage", "has_discrete_gpu", "brand_encoded", "cpu_tier", "region_encoded"]
+FEAT_PRICE   = ["RAM", "Storage", "has_discrete_gpu", "brand_encoded", "cpu_tier"]
 
-# ── Train/test split ──────────────────────────────────────────────────────────
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+df[FEATURES + ["region_encoded"]] = df[FEATURES + ["region_encoded"]].fillna(0)
 
-# ── Train Random Forest model ─────────────────────────────────────────────────
-model = RandomForestRegressor(n_estimators=100, random_state=42)
-model.fit(X_train, y_train)
+# ══════════════════════════════════════════════════════════════════════════════
+# MODEL 1 — Random Forest Regressor (value score ranking)
+# ══════════════════════════════════════════════════════════════════════════════
+print("\n── Training Random Forest (value scoring) ──")
+X_rf = df[FEATURES]
+y_rf = df["value_score"]
+X_train, X_test, y_train, y_test = train_test_split(X_rf, y_rf, test_size=0.2, random_state=42)
 
-# ── Evaluate ──────────────────────────────────────────────────────────────────
-y_pred = model.predict(X_test)
-mae = mean_absolute_error(y_test, y_pred)
-r2 = r2_score(y_test, y_pred)
+rf_model = RandomForestRegressor(n_estimators=100, random_state=42, n_jobs=-1)
+rf_model.fit(X_train, y_train)
+y_pred = rf_model.predict(X_test)
+print(f"   MAE:  {mean_absolute_error(y_test, y_pred):.4f}")
+print(f"   R²:   {r2_score(y_test, y_pred):.4f}")
+print("   Feature importances:")
+for feat, imp in zip(FEATURES, rf_model.feature_importances_):
+    print(f"     {feat}: {imp:.4f}")
 
-print(f"\n✅ Model trained successfully!")
-print(f"📊 Mean Absolute Error: {mae:.4f}")
-print(f"📊 R² Score: {r2:.4f}")
-print(f"📊 Feature importances:")
-for feat, imp in zip(features, model.feature_importances_):
-    print(f"   {feat}: {imp:.4f}")
+# ══════════════════════════════════════════════════════════════════════════════
+# MODEL 2 — KNN Regressor (recommendation — find similar laptops)
+# ══════════════════════════════════════════════════════════════════════════════
+print("\n── Training KNN (recommendation) ──")
+X_knn = df[FEAT_KNN]
+y_knn = df["value_score"]
 
-# ── Save model and encoder ────────────────────────────────────────────────────
-with open("../model/recommendation_model.pkl", "wb") as f:
-    pickle.dump(model, f)
+scaler_knn = StandardScaler()
+X_knn_scaled = scaler_knn.fit_transform(X_knn)
 
-with open("../brand_encoder.pkl", "wb") as f:
-    pickle.dump(le_brand, f)
+X_train_k, X_test_k, y_train_k, y_test_k = train_test_split(
+    X_knn_scaled, y_knn, test_size=0.2, random_state=42
+)
+knn_model = KNeighborsRegressor(n_neighbors=10, metric="euclidean", n_jobs=-1)
+knn_model.fit(X_train_k, y_train_k)
+y_pred_k = knn_model.predict(X_test_k)
+print(f"   MAE:  {mean_absolute_error(y_test_k, y_pred_k):.4f}")
+print(f"   R²:   {r2_score(y_test_k, y_pred_k):.4f}")
 
-print("\n✅ Model saved as recommendation_model.pkl")
-print("✅ Brand encoder saved as brand_encoder.pkl")
+# ══════════════════════════════════════════════════════════════════════════════
+# MODEL 3 — Ridge Regression (price prediction)
+# ══════════════════════════════════════════════════════════════════════════════
+print("\n── Training Ridge Regression (price prediction) ──")
+X_price = df[FEAT_PRICE]
+y_price = df["Price_LKR"]
+
+scaler_price = StandardScaler()
+X_price_scaled = scaler_price.fit_transform(X_price)
+
+X_train_p, X_test_p, y_train_p, y_test_p = train_test_split(
+    X_price_scaled, y_price, test_size=0.2, random_state=42
+)
+ridge_model = Ridge(alpha=1.0)
+ridge_model.fit(X_train_p, y_train_p)
+y_pred_p = ridge_model.predict(X_test_p)
+print(f"   MAE:  LKR {mean_absolute_error(y_test_p, y_pred_p):,.0f}")
+print(f"   R²:   {r2_score(y_test_p, y_pred_p):.4f}")
+
+# ══════════════════════════════════════════════════════════════════════════════
+# Save all models and encoders
+# ══════════════════════════════════════════════════════════════════════════════
+print("\n── Saving models ──")
+models = {
+    "model.pkl":           rf_model,
+    "knn_model.pkl":       knn_model,
+    "price_model.pkl":     ridge_model,
+    "brand_encoder.pkl":   le_brand,
+    "region_encoder.pkl":  le_region,
+    "scaler_knn.pkl":      scaler_knn,
+    "scaler_price.pkl":    scaler_price,
+}
+for filename, obj in models.items():
+    path = os.path.join(BASE_DIR, filename)
+    with open(path, "wb") as f:
+        pickle.dump(obj, f)
+    print(f"   ✅ Saved {filename}")
+
+print("\n🎉 All models trained and saved successfully!")
+print(f"   Random Forest  → value scoring & ranking")
+print(f"   KNN            → recommendation (find similar laptops)")
+print(f"   Ridge Regression → price prediction")
