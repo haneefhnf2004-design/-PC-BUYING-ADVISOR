@@ -450,3 +450,37 @@ footer span { color: var(--cyan); }
   .fab-voice { bottom: 88px; right: 16px; }
   .fab-chat  { bottom: 20px; right: 16px; }
 }
+
+/* ══════════════════════════════════════════════════════════════
+   LAPTOP THUMBNAIL — shared across chat, quiz, comparison, SAGE
+   ══════════════════════════════════════════════════════════════ */
+
+/* Applied to both <img> and placeholder <div> for consistent sizing */
+.laptop-thumb {
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  object-fit: cover;   /* crops proportionally for <img> */
+  flex-shrink: 0;
+}
+
+/* Placeholder container shown while loading or when image_url is empty */
+.laptop-thumb--placeholder {
+  background: rgba(0, 212, 255, 0.1);
+  border: 1px solid rgba(0, 212, 255, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* <a> wrapper that holds the thumbnail — needs fixed size so absolute img fills it */
+.laptop-thumb-link {
+  display: inline-flex;
+  flex-shrink: 0;
+  width: 60px;
+  height: 60px;
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+  text-decoration: none;
+}

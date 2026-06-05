@@ -230,25 +230,23 @@
   </style>
 </head>
 <body>
-  <!-- SAGE VOICE ASSISTANT - SCI-FI UI -->
+  <!-- SAGE VOICE ASSISTANT - RIGHT SIDE PANEL -->
 <div id="sage-overlay" style="display:none; position:fixed; inset:0; z-index:600; background:#050510; flex-direction:column; align-items:center; justify-content:space-between; padding:0;">
 
   <!-- Top Bar -->
   <div style="width:100%; height:44px; background:rgba(0,0,0,0.6); border-bottom:1px solid rgba(0,212,255,0.15); display:flex; align-items:center; justify-content:space-between; padding:0 24px; flex-shrink:0;">
     <span style="font-family:monospace; font-size:11px; color:#00d4ff; letter-spacing:2px;">V1.0.0</span>
-    <div id="sage-topwave" style="display:flex; gap:3px; align-items:center;">
+    <div style="display:flex; gap:3px; align-items:center;">
       <span style="font-family:monospace; font-size:11px; color:rgba(0,212,255,0.4); letter-spacing:1px;">▮▮▮▮▮▮▮▮▮▮▮▮▮▮▮</span>
     </div>
-    <div style="display:flex; align-items:center; gap:20px;">
-      <span id="sage-clock" style="font-family:monospace; font-size:11px; color:#8b949e;">12:00:00 PM</span>
-      <button onclick="closeSAGE()" style="background:none; border:none; color:#8b949e; cursor:pointer; font-size:16px; line-height:1;">✕</button>
+    <div style="display:flex;align-items:center;gap:12px;">
+      <span id="sage-clock" style="font-family:monospace;font-size:11px;color:#8b949e;">12:00:00 PM</span>
+      <button onclick="closeSAGE()" style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:#8b949e;cursor:pointer;font-size:14px;line-height:1;width:28px;height:28px;border-radius:6px;display:flex;align-items:center;justify-content:center;">✕</button>
     </div>
   </div>
 
-  <!-- Middle: Avatar + Terminal -->
-  <div style="flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; width:100%; padding:24px 0 0;">
-
-    <!-- Circle Avatar -->
+  <!-- Avatar + Status -->
+  <div style="flex:1; display:flex; flex-direction:column; align-items:center; width:100%; padding:16px 0 0; overflow-y:auto; min-height:0;">
     <div style="position:relative; margin-bottom:12px;">
       <div id="sage-ring-outer" style="width:180px; height:180px; border-radius:50%; border:1.5px solid rgba(124,58,237,0.5); display:flex; align-items:center; justify-content:center; position:relative;">
         <div style="position:absolute; inset:-10px; border-radius:50%; border:1px solid rgba(124,58,237,0.2); animation:sage-ring-pulse 2.5s ease-in-out infinite;"></div>
@@ -256,56 +254,40 @@
         <div id="sage-avatar-label" style="font-family:monospace; font-size:22px; font-weight:900; color:#00d4ff; letter-spacing:6px; text-shadow:0 0 20px rgba(0,212,255,0.8);">S.A.G.E</div>
       </div>
     </div>
-
-    <!-- Subtitle -->
     <div style="font-family:monospace; font-size:10px; color:#8b949e; letter-spacing:3px; margin-bottom:8px;">PROJECT: PCADVISOR</div>
-
-    <!-- Status -->
     <div id="sage-status" style="font-family:monospace; font-size:12px; color:#00d4ff; margin-bottom:16px; min-height:18px; letter-spacing:1px;">● READY — Ask me anything!</div>
-
-    <!-- Terminal -->
-    <div id="sage-terminal" style="width:100%; max-width:680px; height:200px; overflow-y:auto; background:rgba(0,0,0,0.4); border-top:1px solid rgba(255,255,255,0.05); border-bottom:1px solid rgba(255,255,255,0.05); padding:16px 28px; font-family:monospace; font-size:13px; line-height:1.9;">
-    </div>
   </div>
 
-  <!-- Text Input (above toolbar) -->
-  <div id="sage-input-row" style="display:block; width:100%; max-width:680px; padding:12px 24px 0; margin:0 auto;">
+  <!-- Terminal -->
+  <div id="sage-terminal" style="width:100%; max-width:680px; flex:1; min-height:120px; overflow-y:auto; background:rgba(0,0,0,0.4); border-top:1px solid rgba(255,255,255,0.05); border-bottom:1px solid rgba(255,255,255,0.05); padding:16px 28px; font-family:monospace; font-size:13px; line-height:1.9; text-align:left;">
+  </div>
+
+  <!-- Text Input -->
+  <div id="sage-input-row" style="display:block; width:100%; max-width:680px; padding:12px 24px 0; margin:0 auto; flex-shrink:0;">
     <div style="display:flex; gap:8px;">
       <input id="sage-text-input" type="text" placeholder="Ask SAGE about laptops or PCs..."
         style="flex:1; padding:11px 16px; background:#0d1117; border:1px solid rgba(0,212,255,0.3); border-radius:10px; color:#e6edf3; font-size:13px; font-family:monospace; outline:none;"
         onkeydown="if(event.key==='Enter'){askSAGE(this.value); this.value='';}"
       />
       <button onclick="const v=document.getElementById('sage-text-input').value; askSAGE(v); document.getElementById('sage-text-input').value='';"
-        style="background:#00d4ff; color:#0d1117; border:none; border-radius:10px; width:42px; height:42px; cursor:pointer; font-size:16px; font-weight:700;">➤</button>
+        style="background:#00d4ff;color:#0d1117;border:none;border-radius:10px;width:40px;height:40px;cursor:pointer;font-size:16px;font-weight:700;flex-shrink:0;">➤</button>
     </div>
   </div>
 
   <!-- Bottom Toolbar -->
-  <div style="width:100%; padding:20px 0 28px; display:flex; justify-content:center;">
+  <div style="width:100%; padding:20px 0 28px; display:flex; justify-content:center; flex-shrink:0;">
     <div style="background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.08); border-radius:50px; padding:10px 28px; display:flex; align-items:center; gap:16px;">
-
-      <!-- Power/Close -->
       <button onclick="closeSAGE()" title="Close SAGE"
-        style="width:46px; height:46px; border-radius:50%; background:rgba(0,212,255,0.08); border:1px solid rgba(0,212,255,0.25); color:#00d4ff; cursor:pointer; font-size:20px; display:flex; align-items:center; justify-content:center; transition:all 0.2s;">⏻</button>
-
-      <!-- Mic -->
+        style="width:46px; height:46px;border-radius:50%;background:rgba(0,212,255,0.08);border:1px solid rgba(0,212,255,0.25);color:#00d4ff;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">⏻</button>
       <button id="sage-mic-btn" onclick="toggleSAGEListening()" title="Voice Input"
-        style="width:46px; height:46px; border-radius:50%; background:rgba(0,212,255,0.15); border:2px solid #00d4ff; color:#00d4ff; cursor:pointer; font-size:20px; display:flex; align-items:center; justify-content:center; box-shadow:0 0 16px rgba(0,212,255,0.3); transition:all 0.2s;">🎤</button>
-
-      <div style="width:1px; height:28px; background:rgba(255,255,255,0.08);"></div>
-
-      <!-- Type -->
+        style="width:46px; height:46px;border-radius:50%;background:rgba(0,212,255,0.15);border:2px solid #00d4ff;color:#00d4ff;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;box-shadow:0 0 12px rgba(0,212,255,0.3);transition:all 0.2s;">🎤</button>
+      <div style="width:1px;height:24px;background:rgba(255,255,255,0.08);"></div>
       <button onclick="document.getElementById('sage-text-input').focus();" title="Type a message"
-        style="width:46px; height:46px; border-radius:50%; background:transparent; border:1px solid rgba(255,255,255,0.1); color:#8b949e; cursor:pointer; font-size:20px; display:flex; align-items:center; justify-content:center; transition:all 0.2s;">💬</button>
-
-      <!-- Clear -->
+        style="width:46px; height:46px;border-radius:50%;background:transparent;border:1px solid rgba(255,255,255,0.1);color:#8b949e;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">💬</button>
       <button onclick="clearSAGETerminal()" title="Clear terminal"
-        style="width:46px; height:46px; border-radius:50%; background:transparent; border:1px solid rgba(255,255,255,0.1); color:#8b949e; cursor:pointer; font-size:20px; display:flex; align-items:center; justify-content:center; transition:all 0.2s;">🗑</button>
-
-      <!-- Stop Speech -->
-      <button onclick="window.speechSynthesis&&window.speechSynthesis.cancel(); setSAGEStatus('● READY — Ask me anything!');" title="Stop speaking"
-        style="width:46px; height:46px; border-radius:50%; background:transparent; border:1px solid rgba(255,255,255,0.1); color:#8b949e; cursor:pointer; font-size:20px; display:flex; align-items:center; justify-content:center; transition:all 0.2s;">⏹</button>
-
+        style="width:46px; height:46px;border-radius:50%;background:transparent;border:1px solid rgba(255,255,255,0.1);color:#8b949e;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">🗑</button>
+      <button onclick="window.speechSynthesis&&window.speechSynthesis.cancel();setSAGEStatus('● READY — Ask me anything!');" title="Stop speaking"
+        style="width:46px; height:46px;border-radius:50%;background:transparent;border:1px solid rgba(255,255,255,0.1);color:#8b949e;cursor:pointer;font-size:20px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;">⏹</button>
     </div>
   </div>
 </div>
@@ -380,6 +362,143 @@
     terminal.scrollTop = terminal.scrollHeight;
   }
 
+  // Renders a laptop card with a real product image inside the SAGE terminal
+  function sageTerminalLaptopCard(laptop) {
+    const terminal = document.getElementById('sage-terminal');
+    if (!terminal || !laptop) return;
+
+    const brand   = laptop.brand   || '';
+    const name    = laptop.laptop  || '';
+    const query   = laptop.image_query || (brand && name ? brand + ' ' + name + ' laptop' : '');
+    const altText = brand + ' ' + name + ' laptop image';
+
+    const card = document.createElement('div');
+    card.style.cssText = 'display:flex;gap:12px;align-items:center;margin-bottom:12px;background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.2);border-radius:10px;padding:10px 14px;';
+
+    // Image container
+    const imgWrap = document.createElement('div');
+    imgWrap.style.cssText = 'width:70px;height:70px;border-radius:8px;background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.25);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative;';
+
+    // SVG placeholder shown while image loads
+    imgWrap.innerHTML = `<svg width="28" height="28" viewBox="0 0 40 40" fill="none">
+      <rect x="6" y="8" width="28" height="18" rx="2" stroke="#00d4ff" stroke-width="1.5" fill="none"/>
+      <rect x="9" y="11" width="22" height="12" rx="1" fill="rgba(0,212,255,0.15)"/>
+      <rect x="4" y="26" width="32" height="3" rx="1.5" fill="#00d4ff" opacity="0.4"/>
+      <rect x="14" y="29" width="12" height="2" rx="1" fill="#00d4ff" opacity="0.3"/>
+    </svg>`;
+
+    // Fetch real image from backend
+    if (query) {
+      fetch('/image-search?q=' + encodeURIComponent(query))
+        .then(function(r) { return r.ok ? r.json() : Promise.reject(); })
+        .then(function(data) {
+          if (!data || !data.image_url) return;
+          var img = document.createElement('img');
+          img.alt = altText;
+          img.style.cssText = 'display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:8px;';
+          img.onload = function() {
+            img.style.display = 'block';
+            imgWrap.innerHTML = '';
+            imgWrap.appendChild(img);
+          };
+          img.onerror = function() {
+            // Try proxy fallback
+            if (!img._proxied) {
+              img._proxied = true;
+              img.src = '/image-proxy?url=' + encodeURIComponent(data.image_url);
+            }
+          };
+          img.src = data.image_url;
+          imgWrap.appendChild(img);
+        })
+        .catch(function() {});
+    }
+
+    // Laptop info text
+    const info = document.createElement('div');
+    info.style.cssText = 'flex:1;min-width:0;font-family:monospace;font-size:12px;';
+    const displayName = laptop.display_name || (laptop.brand + ' ' + laptop.laptop);
+    info.innerHTML =
+      '<div style="color:#e6edf3;font-weight:700;font-size:13px;margin-bottom:4px;">' + displayName + '</div>' +
+      '<div style="color:#8b949e;">💰 LKR ' + Number(laptop.price).toLocaleString() + '</div>' +
+      '<div style="color:#8b949e;font-size:11px;margin-top:2px;">' + (laptop.cpu || '') + ' · ' + (laptop.ram || '') + 'GB RAM</div>' +
+      '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;">' +
+        '<a href="' + laptop.daraz_url + '" target="_blank" style="background:#F57C00;color:white;padding:3px 8px;border-radius:5px;font-size:10px;font-weight:700;text-decoration:none;">🛒 Daraz</a>' +
+        '<a href="' + (laptop.image_url || ('https://www.google.com/search?q=' + encodeURIComponent((laptop.display_name || laptop.laptop) + ' laptop') + '&tbm=isch')) + '" target="_blank" style="background:rgba(0,212,255,0.15);color:#00d4ff;border:1px solid rgba(0,212,255,0.3);padding:3px 8px;border-radius:5px;font-size:10px;font-weight:700;text-decoration:none;">🖼️ Image</a>' +
+      '</div>';
+
+    card.appendChild(imgWrap);
+    card.appendChild(info);
+    terminal.appendChild(card);
+    terminal.scrollTop = terminal.scrollHeight;
+  }
+
+  // Brand vs brand comparison card in the SAGE terminal
+  function sageBrandCompareCard(b) {
+    var terminal = document.getElementById('sage-terminal');
+    if (!terminal || !b) return;
+
+    var pctA = b.score_pct_a;
+    var pctB = b.score_pct_b;
+    var isNearTie = b.near_tie;
+    var winnerBrand = b.winner === 'A' ? b.brand_a : b.brand_b;
+    var winnerPct   = b.winner === 'A' ? pctA : pctB;
+
+    var card = document.createElement('div');
+    card.style.cssText = 'margin-bottom:14px;background:rgba(0,212,255,0.05);border:1px solid rgba(0,212,255,0.2);border-radius:10px;padding:14px;';
+
+    // Title
+    var titleEl = document.createElement('div');
+    titleEl.style.cssText = 'color:#00d4ff;font-weight:700;font-size:13px;margin-bottom:10px;';
+    titleEl.textContent = '🏷️ ' + b.brand_a + ' vs ' + b.brand_b + ' — Brand Comparison';
+    card.appendChild(titleEl);
+
+    // Verdict
+    var verdictDiv = document.createElement('div');
+    verdictDiv.style.cssText = 'background:rgba(255,255,255,0.04);border-radius:8px;padding:10px;margin-bottom:12px;text-align:center;';
+    if (isNearTie) {
+      verdictDiv.innerHTML = '<div style="font-size:20px;">🤝</div><div style="color:#e6edf3;font-weight:700;margin-top:4px;">Near Tie!</div><div style="color:#8b949e;font-size:11px;">' + pctA + '% vs ' + pctB + '%</div>';
+    } else {
+      verdictDiv.innerHTML = '<div style="font-size:20px;">🏆</div><div style="color:#00d4ff;font-weight:800;font-size:15px;margin-top:4px;">' + winnerBrand + ' wins — ' + winnerPct + '%</div><div style="color:#8b949e;font-size:11px;">' + pctA + '% vs ' + pctB + '% across ' + (b.count_a + b.count_b) + ' laptops</div>';
+    }
+    card.appendChild(verdictDiv);
+
+    // Score bars
+    [{brand: b.brand_a, pct: pctA}, {brand: b.brand_b, pct: pctB}].forEach(function(item) {
+      var isWinner = !isNearTie && item.pct === winnerPct;
+      var barWrap = document.createElement('div');
+      barWrap.style.cssText = 'margin-bottom:8px;';
+      barWrap.innerHTML =
+        '<div style="display:flex;justify-content:space-between;margin-bottom:3px;">' +
+          '<span style="font-size:12px;color:#e6edf3;">' + (isWinner ? '🏆 ' : '') + item.brand + '</span>' +
+          '<span style="font-size:13px;font-weight:800;color:' + (isWinner ? '#00d4ff' : '#8b949e') + ';">' + item.pct + '%</span>' +
+        '</div>' +
+        '<div style="height:10px;background:#0d1117;border-radius:5px;overflow:hidden;">' +
+          '<div style="height:100%;width:' + item.pct + '%;background:' + (isWinner ? 'linear-gradient(90deg,#00d4ff,#7c3aed)' : '#2d3748') + ';border-radius:5px;transition:width 0.8s ease;"></div>' +
+        '</div>';
+      card.appendChild(barWrap);
+    });
+
+    // Category breakdown
+    var cats = b.category_scores || {};
+    var catNames = {cpu:'CPU', ram:'RAM', storage:'Storage', gpu:'GPU', value:'Value'};
+    var catRow = document.createElement('div');
+    catRow.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;';
+    Object.entries(cats).forEach(function(entry) {
+      var cat = entry[0], info = entry[1];
+      var winLabel = info.winner === 'A' ? b.brand_a : info.winner === 'B' ? b.brand_b : 'Tie';
+      var winColor = info.winner === 'tie' ? '#555' : '#00d4ff';
+      var cell = document.createElement('div');
+      cell.style.cssText = 'background:rgba(255,255,255,0.04);border-radius:6px;padding:5px 8px;font-size:10px;text-align:center;';
+      cell.innerHTML = '<div style="color:#8b949e;">' + (catNames[cat]||cat) + '</div><div style="color:' + winColor + ';font-weight:700;margin-top:2px;">' + winLabel + '</div>';
+      catRow.appendChild(cell);
+    });
+    card.appendChild(catRow);
+
+    terminal.appendChild(card);
+    terminal.scrollTop = terminal.scrollHeight;
+  }
+
   function playSAGEOpenSound() {
     try {
       const ctx = new (window.AudioContext || window.webkitAudioContext)();
@@ -425,7 +544,7 @@
     }
 
     sageRecognition = new SR();
-    sageRecognition.lang = 'en-US';
+    sageRecognition.lang = 'en-US'; // default; overridden per-utterance if needed
     sageRecognition.continuous = false;
     sageRecognition.interimResults = true;
     sageRecognition.maxAlternatives = 5;
@@ -504,6 +623,9 @@
     const q = query.toLowerCase().trim();
     setSAGEStatus('● PROCESSING...');
 
+    // Show the user's question FIRST at the top
+    sageTerminalLog('You', query);
+
     // ── Command: open daraz / kapruka / image link ────────────────────────
     const openCmds = ['open', 'go to', 'show', 'launch', 'visit', 'take me to'];
     const isOpenCmd = openCmds.some(c => q.startsWith(c) || q.includes(c));
@@ -538,127 +660,123 @@
     }
 
     // ── Standard recommendation query ────────────────────────────────────
-    const budgetMatch = query.match(/(\d[\d,]*)\s*(k|lkr|rs)?/i);
-    let budget = budgetMatch ? budgetMatch[1].replace(/,/g,'') : '300000';
-    if (query.toLowerCase().includes('k') && budget.length <= 3) budget = budget + '000';
-
-    const useCases = ['gaming','office','video editing','programming','general use','student'];
-    let useCase = 'general use';
-    for (const uc of useCases) {
-      if (q.includes(uc)) { useCase = uc; break; }
-    }
-
     try {
-      const res = await fetch('http://localhost:5000/recommend', {
+      const res = await fetch('/chat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ budget: budget + ' LKR', use_case: useCase, preferences: query })
+        body: JSON.stringify({
+          message:  query,
+          budget:   (typeof currentBudget  !== 'undefined' && currentBudget)  ? currentBudget  : '500000',
+          use_case: (typeof currentUseCase !== 'undefined' && currentUseCase) ? currentUseCase : 'general use',
+        }),
       });
 
-      const data = await res.json();
-      const responseText = data.recommendation || 'Sorry, I could not get a recommendation.';
-      const cleanText = responseText.replace(/[#*`]/g, '').replace(/\n+/g,' ').trim();
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        throw new Error('Server error ' + res.status + ': ' + (errData.error || ''));
+      }
 
-      sageTerminalLog('SAGE', cleanText.substring(0, 400) + (cleanText.length > 400 ? '...' : ''));
+      const data = await res.json();
+
+      // Clean the reply text for terminal display
+      const cleanText = (data.reply || 'Sorry, I could not get a response.')
+        .replace(/#{1,6}\s*/g, '')
+        .replace(/\*\*/g, '')
+        .replace(/\*/g, '')
+        .replace(/`/g, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim();
+
+      sageTerminalLog('SAGE', cleanText);
+
+      // Brand comparison — render visual card in terminal
+      if (data.intent === 'brand_compare' && data.brand_compare) {
+        sageBrandCompareCard(data.brand_compare);
+      }
+      // Laptop cards — render with images
+      else if (data.laptops && data.laptops.length > 0) {
+        data.laptops.forEach(laptop => sageTerminalLaptopCard(laptop));
+      }
+
       setSAGEStatus('● RESPONSE READY');
-      speakSAGE(cleanText.substring(0, 250));
+      const sentences = cleanText.match(/[^.!?]+[.!?]+/g) || [cleanText];
+      speakSAGE(sentences.slice(0, 3).join(' ').substring(0, 400));
 
     } catch(err) {
-      sageTerminalLog('System', 'Could not reach server. Make sure backend is running on localhost:5000.');
+      console.error('[SAGE askSAGE error]', err);
+      sageTerminalLog('System', 'Error: ' + (err.message || 'Could not reach server. Make sure backend is running on localhost:5000.'));
       setSAGEStatus('● CONNECTION ERROR');
     }
   }
 
   function speakSAGE(text) {
-    if (!window.speechSynthesis) return;
+    if (!window.speechSynthesis || !text) return;
     window.speechSynthesis.cancel();
+
     const utterance = new SpeechSynthesisUtterance(text);
-    utterance.rate = 0.92;
-    utterance.pitch = 1.2;
+    utterance.rate   = 0.92;
+    utterance.pitch  = 1.1;
     utterance.volume = 1.0;
 
-    // Female-only voice selection — aggressive, no male fallback
-    const loadVoices = () => {
+    // ── Language detection from text ──────────────────────────────
+    function detectLang(t) {
+      // Simple Unicode range detection for common scripts
+      if (/[\u0D80-\u0DFF]/.test(t)) return 'si-LK'; // Sinhala
+      if (/[\u0B80-\u0BFF]/.test(t)) return 'ta-IN'; // Tamil
+      if (/[\u0600-\u06FF]/.test(t)) return 'ar-SA'; // Arabic
+      if (/[\u4E00-\u9FFF]/.test(t)) return 'zh-CN'; // Chinese
+      if (/[\u3040-\u309F\u30A0-\u30FF]/.test(t)) return 'ja-JP'; // Japanese
+      if (/[\uAC00-\uD7AF]/.test(t)) return 'ko-KR'; // Korean
+      if (/[\u0900-\u097F]/.test(t)) return 'hi-IN'; // Hindi/Devanagari
+      if (/[\u0400-\u04FF]/.test(t)) return 'ru-RU'; // Russian/Cyrillic
+      // Latin-based language hints from common words
+      const lower = t.toLowerCase();
+      if (/\b(je|vous|nous|bonjour|merci|ordinateur)\b/.test(lower)) return 'fr-FR';
+      if (/\b(ich|sie|das|ist|und|laptop|computer|bitte)\b/.test(lower)) return 'de-DE';
+      if (/\b(hola|gracias|computadora|portatil|mejor)\b/.test(lower)) return 'es-ES';
+      if (/\b(ciao|grazie|computer|portatile|migliore)\b/.test(lower)) return 'it-IT';
+      if (/\b(olá|obrigado|computador|melhor|laptop)\b/.test(lower)) return 'pt-PT';
+      return 'en-US'; // default
+    }
+
+    const detectedLang = detectLang(text);
+    utterance.lang = detectedLang;
+
+    // ── Pick the best available voice for detected language ───────
+    function pickVoice(voices, lang) {
+      // 1. Exact lang match (prefer female names)
+      const femaleKeywords = ['female','zira','samantha','karen','moira','tessa',
+        'aria','jenny','michelle','monica','emma','libby','natasha','victoria',
+        'fiona','eva','mia','clara','hazel','susan','neerja','heera','veena'];
+
+      const langVoices = voices.filter(v => v.lang === lang || v.lang.startsWith(lang.split('-')[0]));
+
+      if (langVoices.length) {
+        // Try female-sounding voice first
+        const female = langVoices.find(v => femaleKeywords.some(k => v.name.toLowerCase().includes(k)));
+        return female || langVoices[0];
+      }
+
+      // 2. Fallback to any English voice
+      const enVoices = voices.filter(v => v.lang.startsWith('en'));
+      const enFemale = enVoices.find(v => femaleKeywords.some(k => v.name.toLowerCase().includes(k)));
+      return enFemale || enVoices[0] || voices[0];
+    }
+
+    function assignVoice() {
       const voices = window.speechSynthesis.getVoices();
-
-      // Log all voices to console so we can debug on any system
-      console.log('[SAGE voices]', voices.map(v => v.name + ' | ' + v.lang));
-
-      // Known female voice names (Windows, Mac, Chrome, Edge)
-      const femaleNames = [
-        'Microsoft Zira',
-        'Microsoft Zira Desktop',
-        'Zira',
-        'Samantha',
-        'Karen',
-        'Moira',
-        'Tessa',
-        'Veena',
-        'Victoria',
-        'Fiona',
-        'Google UK English Female',
-        'Google US English Female',
-        'Microsoft Aria',
-        'Microsoft Jenny',
-        'Microsoft Michelle',
-        'Microsoft Monica',
-        'Microsoft Clara',
-        'Microsoft Hazel',
-        'Microsoft Susan',
-        'Microsoft Eva',
-        'Microsoft Emma',
-        'Microsoft Libby',
-        'Microsoft Mia',
-        'Microsoft Natasha',
-        'Microsoft Neerja',
-        'Microsoft Heera',
-        'Microsoft Zira Online',
-        'Microsoft Aria Online',
-      ];
-
-      // 1. Exact name match
-      let pick = voices.find(v => femaleNames.includes(v.name));
-
-      // 2. Partial name match on known female keywords
-      if (!pick) {
-        pick = voices.find(v => {
-          const n = v.name.toLowerCase();
-          return n.includes('zira') || n.includes('samantha') || n.includes('female') ||
-                 n.includes('aria') || n.includes('jenny') || n.includes('michelle') ||
-                 n.includes('monica') || n.includes('hazel') || n.includes('susan') ||
-                 n.includes('emma') || n.includes('libby') || n.includes('natasha') ||
-                 n.includes('karen') || n.includes('moira') || n.includes('tessa') ||
-                 n.includes('victoria') || n.includes('fiona') || n.includes('eva') ||
-                 n.includes('mia') || n.includes('clara');
-        });
-      }
-
-      // 3. Any en-GB or en-AU voice (tend to be female on most systems)
-      if (!pick) {
-        pick = voices.find(v => v.lang === 'en-GB' || v.lang === 'en-AU');
-      }
-
-      // 4. Any English voice that is NOT a known male name
-      if (!pick) {
-        const maleNames = ['david', 'mark', 'daniel', 'james', 'george', 'rishi', 'fred', 'alex', 'thomas', 'richard'];
-        pick = voices.find(v => {
-          const n = v.name.toLowerCase();
-          return v.lang.startsWith('en') && !maleNames.some(m => n.includes(m));
-        });
-      }
-
+      if (!voices.length) return;
+      const pick = pickVoice(voices, detectedLang);
       if (pick) {
-        console.log('[SAGE] Using voice:', pick.name, pick.lang);
         utterance.voice = pick;
-      } else {
-        console.warn('[SAGE] No suitable female voice found. Available:', voices.map(v => v.name));
+        utterance.lang  = pick.lang; // ensure lang matches chosen voice
       }
-    };
+    }
 
     if (window.speechSynthesis.getVoices().length) {
-      loadVoices();
+      assignVoice();
     } else {
-      window.speechSynthesis.onvoiceschanged = loadVoices;
+      window.speechSynthesis.onvoiceschanged = assignVoice;
     }
 
     utterance.onstart = () => {
@@ -864,7 +982,6 @@ async function sendChatMessage() {
           btnRow.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;';
           btnRow.innerHTML = `
             <a href="${laptop.daraz_url}" target="_blank" style="background:#F57C00;color:white;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px;">🛒 Daraz</a>
-            <a href="${laptop.ikman_url}" target="_blank" style="background:#e53935;color:white;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px;">📌 ikman.lk</a>
             <a href="${laptop.kapruka_url}" target="_blank" style="background:#1565c0;color:white;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:5px;">🔎 Google Shop</a>
             <a href="${laptop.image_url}" target="_blank" style="background:rgba(0,212,255,0.1);color:#00d4ff;padding:7px 14px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;border:1px solid rgba(0,212,255,0.3);display:inline-flex;align-items:center;gap:5px;">🖼️ Images</a>`;
           card.appendChild(btnRow);
@@ -1389,7 +1506,7 @@ async function sendChatMessage() {
     document.getElementById('modalNav').style.display = 'none';
 
     try {
-      const res = await fetch('http://localhost:5000/recommend', {
+      const res = await fetch('/recommend', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -1406,7 +1523,7 @@ async function sendChatMessage() {
 
       const data = await res.json();
       closeModal();
-      showResults(data.recommendation, budget, useCase);
+      showResults(data.recommendation, budget, useCase, data.laptops || []);
 
     } catch (err) {
       document.getElementById('loadingWrap').classList.remove('active');
@@ -1417,15 +1534,90 @@ async function sendChatMessage() {
   }
 
   // ── Results ──
-  function showResults(markdown, budget, useCase) {
+  function showResults(markdown, budget, useCase, laptops) {
     const resultsEl = document.getElementById('results');
-    const bodyEl = document.getElementById('resultBody');
-    const metaEl = document.getElementById('resultMeta');
+    const bodyEl    = document.getElementById('resultBody');
+    const metaEl    = document.getElementById('resultMeta');
 
     metaEl.textContent = 'Budget: LKR ' + Number(budget).toLocaleString() + ' \u2022 Use case: ' + capitalize(useCase);
-    bodyEl.innerHTML = typeof marked !== 'undefined' ? marked.parse(markdown) : markdown;
+    bodyEl.innerHTML   = typeof marked !== 'undefined' ? marked.parse(markdown) : markdown;
     resultsEl.classList.add('active');
     resultsEl.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+    // Render laptop cards with images below the recommendation text
+    if (laptops && laptops.length > 0) {
+      // Remove any previous cards
+      var old = document.getElementById('result-laptop-cards');
+      if (old) old.remove();
+
+      var container = document.createElement('div');
+      container.id  = 'result-laptop-cards';
+      container.style.cssText = 'margin-top:20px;';
+
+      var sorted = laptops.slice().sort(function(a, b) {
+        return parseFloat(a.price) - parseFloat(b.price);
+      });
+
+      sorted.forEach(function(l) {
+        var displayName = l.display_name || (l.brand + ' ' + l.laptop);
+        var imgSearchUrl = l.image_url || ('https://www.google.com/search?q=' + encodeURIComponent(displayName + ' laptop') + '&tbm=isch');
+        var query = l.image_query || (displayName + ' laptop');
+
+        var card = document.createElement('div');
+        card.style.cssText = 'border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:14px;margin-bottom:14px;background:rgba(255,255,255,0.02);';
+
+        // Header row: image + name/specs
+        var headerRow = document.createElement('div');
+        headerRow.style.cssText = 'display:flex;align-items:flex-start;gap:12px;margin-bottom:12px;';
+
+        // Image container
+        var imgWrap = document.createElement('div');
+        imgWrap.style.cssText = 'width:80px;height:80px;border-radius:8px;background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.25);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative;';
+        imgWrap.innerHTML = '<svg width="30" height="30" viewBox="0 0 40 40" fill="none"><rect x="6" y="8" width="28" height="18" rx="2" stroke="#00d4ff" stroke-width="1.5" fill="none"/><rect x="9" y="11" width="22" height="12" rx="1" fill="rgba(0,212,255,0.15)"/><rect x="4" y="26" width="32" height="3" rx="1.5" fill="#00d4ff" opacity="0.4"/><rect x="14" y="29" width="12" height="2" rx="1" fill="#00d4ff" opacity="0.3"/></svg>';
+
+        // Fetch real image
+        (function(wrap, q, searchUrl) {
+          fetch('/image-search?q=' + encodeURIComponent(q))
+            .then(function(r) { return r.ok ? r.json() : Promise.reject(); })
+            .then(function(data) {
+              if (!data || !data.image_url) return;
+              var img = document.createElement('img');
+              img.alt = q;
+              img.style.cssText = 'display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:8px;';
+              img.onload = function() { img.style.display = 'block'; wrap.innerHTML = ''; wrap.appendChild(img); };
+              img.onerror = function() { if (!img._proxied) { img._proxied = true; img.src = '/image-proxy?url=' + encodeURIComponent(data.image_url); } };
+              img.src = data.image_url;
+              wrap.appendChild(img);
+            }).catch(function(){});
+        })(imgWrap, query, imgSearchUrl);
+
+        // Info
+        var info = document.createElement('div');
+        info.style.cssText = 'flex:1;min-width:0;';
+        info.innerHTML =
+          '<div style="font-weight:700;color:#e6edf3;font-size:14px;margin-bottom:4px;">' + displayName + '</div>' +
+          '<div style="font-size:12px;color:#8b949e;margin-bottom:4px;">' + (l.cpu || '') + ' · ' + (l.ram || '') + 'GB RAM · ' + (l.storage || '') + 'GB</div>' +
+          '<div style="font-size:15px;font-weight:800;color:#00d4ff;">💰 LKR ' + Number(l.price).toLocaleString() + '</div>';
+
+        headerRow.appendChild(imgWrap);
+        headerRow.appendChild(info);
+        card.appendChild(headerRow);
+
+        // Buttons
+        var btnRow = document.createElement('div');
+        btnRow.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;';
+        btnRow.innerHTML =
+          '<a href="' + l.daraz_url + '" target="_blank" style="background:#F57C00;color:white;padding:6px 14px;border-radius:7px;font-size:12px;font-weight:700;text-decoration:none;">🛒 Daraz</a>' +
+          '<a href="' + l.kapruka_url + '" target="_blank" style="background:#1565c0;color:white;padding:6px 14px;border-radius:7px;font-size:12px;font-weight:700;text-decoration:none;">🔎 Google Shop</a>' +
+          '<a href="' + imgSearchUrl + '" target="_blank" style="background:rgba(0,212,255,0.15);color:#00d4ff;border:1px solid rgba(0,212,255,0.3);padding:6px 14px;border-radius:7px;font-size:12px;font-weight:700;text-decoration:none;">🖼️ Image</a>';
+        card.appendChild(btnRow);
+
+        container.appendChild(card);
+      });
+
+      // Append after the result-body
+      document.getElementById('resultBody').after(container);
+    }
   }
 
   function startOver() {

@@ -188,3 +188,94 @@ def compare_two(laptop_a: dict, laptop_b: dict, use_case: str = "general") -> di
         "pros_b":              pros_b,
         "cons_b":              cons_b,
     }
+
+
+def compare_brands(brand_a: str, brand_b: str, df, use_case: str = "general") -> dict | None:
+    """
+    Compare two brands by scoring all their laptops and averaging the scores.
+    Returns a comparison dict similar to compare_two(), or None if either brand
+    has no laptops in the dataset.
+    """
+    uc = use_case.lower().strip()
+    weights = USE_CASE_WEIGHTS.get(uc, USE_CASE_WEIGHTS["general"])
+
+    laptops_a = df[df["Brand"].str.lower() == brand_a.lower()]
+    laptops_b = df[df["Brand"].str.lower() == brand_b.lower()]
+
+    if laptops_a.empty or laptops_b.empty:
+        return None
+
+    # Use global max values across both brands for fair normalisation
+    all_ram     = pd.concat([laptops_a, laptops_b])["RAM"].fillna(0)
+    all_storage = pd.concat([laptops_a, laptops_b])["Storage"].fillna(0)
+    all_price   = pd.concat([laptops_a, laptops_b])["Price_LKR"].fillna(1)
+
+    ref_max = {
+        "ram":     float(all_ram.max())     or 1.0,
+        "storage": float(all_storage.max()) or 1.0,
+        "value":   1_000_000 / float(all_price.min() or 1),
+    }
+
+    # Average score across all laptops of each brand
+    scores_a = [score_laptop(row.to_dict(), weights, ref_max) for _, row in laptops_a.iterrows()]
+    scores_b = [score_laptop(row.to_dict(), weights, ref_max) for _, row in laptops_b.iterrows()]
+
+    avg_a = round(sum(scores_a) / len(scores_a), 4)
+    avg_b = round(sum(scores_b) / len(scores_b), 4)
+
+    near_tie = abs(avg_a - avg_b) < 0.04
+    winner   = "tie" if near_tie else ("A" if avg_a > avg_b else "B")
+
+    # Category averages
+    def _brand_cat_avg(laptops_df, cat):
+        vals = [score_laptop(r.to_dict(), {cat: 1.0}, ref_max) for _, r in laptops_df.iterrows()]
+        return round(sum(vals) / len(vals), 4) if vals else 0.0
+
+    category_scores = {}
+    for cat in ["cpu", "ram", "storage", "gpu", "value"]:
+        sa = _brand_cat_avg(laptops_a, cat)
+        sb = _brand_cat_avg(laptops_b, cat)
+        if sa > sb:   w = "A"
+        elif sb > sa: w = "B"
+        else:         w = "tie"
+        category_scores[cat] = {"winner": w, "score_a": round(sa, 3), "score_b": round(sb, 3)}
+
+    # Representative best laptop per brand (highest score)
+    best_a = laptops_a.loc[
+        [score_laptop(r.to_dict(), weights, ref_max) for _, r in laptops_a.iterrows()].index(max(scores_a))
+        if scores_a else 0
+    ].to_dict() if not laptops_a.empty else {}
+
+    # Fix: get index of best score correctly
+    best_idx_a = scores_a.index(max(scores_a)) if scores_a else 0
+    best_idx_b = scores_b.index(max(scores_b)) if scores_b else 0
+    best_a = laptops_a.iloc[best_idx_a].to_dict() if not laptops_a.empty else {}
+    best_b = laptops_b.iloc[best_idx_b].to_dict() if not laptops_b.empty else {}
+
+    pros_a, pros_b = [], []
+    labels = {"cpu": "CPU Performance", "ram": "RAM", "storage": "Storage",
+              "gpu": "GPU Performance", "value": "Value for Money"}
+    for cat, info in category_scores.items():
+        if info["winner"] == "A":
+            pros_a.append(labels.get(cat, cat.upper()))
+        elif info["winner"] == "B":
+            pros_b.append(labels.get(cat, cat.upper()))
+
+    return {
+        "score_a":          avg_a,
+        "score_b":          avg_b,
+        "score_pct_a":      round(avg_a * 100),
+        "score_pct_b":      round(avg_b * 100),
+        "winner":           winner,
+        "near_tie":         near_tie,
+        "brand_a":          brand_a.title(),
+        "brand_b":          brand_b.title(),
+        "count_a":          len(laptops_a),
+        "count_b":          len(laptops_b),
+        "use_case":         uc,
+        "category_scores":  category_scores,
+        "pros_a":           pros_a,
+        "pros_b":           pros_b,
+        "best_a":           best_a,
+        "best_b":           best_b,
+    }

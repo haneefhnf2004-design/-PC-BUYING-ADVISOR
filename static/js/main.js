@@ -36,6 +36,82 @@ function renderMarkdown(text) {
   return text.replace(/\n/g, '<br>');
 }
 
+// ── Laptop thumbnail factory ──────────────────────────────────────
+// Calls the backend /image-search endpoint (SerpApi) to get a real
+// product image URL, then swaps it in once loaded.
+// Falls back to the SVG laptop icon if the API call fails or is slow.
+function buildLaptopThumbnail(laptop) {
+  const brand   = (laptop && laptop.brand)       || '';
+  const name    = (laptop && laptop.laptop)      || '';
+  const query   = (laptop && laptop.image_query) || (brand && name ? `${brand} ${name} laptop` : '');
+  const altText = `${brand} ${name} laptop image`.trim();
+
+  // Shared SVG laptop icon placeholder
+  const svgHTML = `<svg width="26" height="26" viewBox="0 0 40 40" fill="none" aria-hidden="true">
+    <rect x="6"  y="8"  width="28" height="18" rx="2" stroke="#00d4ff" stroke-width="1.5" fill="none"/>
+    <rect x="9"  y="11" width="22" height="12" rx="1" fill="rgba(0,212,255,0.15)"/>
+    <rect x="4"  y="26" width="32" height="3"  rx="1.5" fill="#00d4ff" opacity="0.4"/>
+    <rect x="14" y="29" width="12" height="2"  rx="1"   fill="#00d4ff" opacity="0.3"/>
+  </svg>`;
+
+  // Clickable link wrapper — opens Google Images search
+  const searchUrl = (laptop && laptop.image_url)
+    || `https://www.google.com/search?q=${encodeURIComponent(query)}&tbm=isch`;
+
+  // Build placeholder (shown immediately while image fetches)
+  const link = document.createElement('a');
+  link.href      = searchUrl;
+  link.target    = '_blank';
+  link.rel       = 'noopener noreferrer';
+  link.className = 'laptop-thumb-link';
+  link.setAttribute('aria-label', altText);
+
+  const placeholder = document.createElement('div');
+  placeholder.className = 'laptop-thumb laptop-thumb--placeholder';
+  placeholder.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;';
+  placeholder.setAttribute('role', 'img');
+  placeholder.setAttribute('aria-label', altText);
+  placeholder.innerHTML = svgHTML;
+  link.appendChild(placeholder);
+
+  // If no query available, just return the placeholder-only link
+  if (!query) return link;
+
+  // Fetch real image URL from backend /image-search endpoint (SerpApi)
+  fetch(`/image-search?q=${encodeURIComponent(query)}`)
+    .then(r => r.ok ? r.json() : Promise.reject())
+    .then(data => {
+      const imgUrl = data && data.image_url;
+      if (!imgUrl) return; // SerpApi key not set or no result — keep placeholder
+
+      const img = document.createElement('img');
+      img.alt       = altText;
+      img.style.cssText = 'display:none;position:absolute;inset:0;width:100%;height:100%;object-fit:cover;border-radius:8px;';
+
+      img.onload = () => {
+        img.style.display = 'block';
+        // Update the link href to open the actual image on click
+        link.href = imgUrl;
+        if (placeholder.parentNode === link) link.removeChild(placeholder);
+      };
+      img.onerror = () => {
+        // Direct URL failed — try proxying through backend
+        if (img._proxied) {
+          if (img.parentNode === link) link.removeChild(img);
+          return;
+        }
+        img._proxied = true;
+        img.src = `/image-proxy?url=${encodeURIComponent(imgUrl)}`;
+      };
+
+      img.src = imgUrl;
+      link.appendChild(img);
+    })
+    .catch(() => {}); // network error — placeholder stays
+
+  return link;
+}
+
 // ── Chatbot ───────────────────────────────────────────────────────
 
 function openChatbot() {
@@ -108,8 +184,12 @@ async function sendChatMessage() {
     // Render AI reply
     if (data.reply) addBotMessage(data.reply, true);
 
+    // Render brand comparison if present
+    if (data.intent === 'brand_compare' && data.brand_compare) {
+      renderBrandCompareCard(data.brand_compare);
+    }
     // Render comparison result if present
-    if (data.comparison && data.laptops && data.laptops.length >= 2) {
+    else if (data.comparison && data.laptops && data.laptops.length >= 2) {
       renderComparisonCards(
         data.laptops[0], data.laptops[1],
         data.comparison,
@@ -189,6 +269,108 @@ function removeTypingIndicator(id) {
   if (el) el.remove();
 }
 
+// ── Brand comparison card ─────────────────────────────────────────
+
+function renderBrandCompareCard(b) {
+  const messages = document.getElementById('chat-messages');
+  const wrap = document.createElement('div');
+  wrap.style.cssText = 'display:flex;gap:10px;align-items:flex-start;margin-top:8px;';
+
+  const avatar = document.createElement('div');
+  avatar.style.cssText = 'width:32px;height:32px;border-radius:8px;background:rgba(0,212,255,0.12);display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;';
+  avatar.textContent = '🤖';
+
+  const content = document.createElement('div');
+  content.style.cssText = 'background:#1e2535;border-radius:12px;padding:16px;max-width:96%;width:100%;';
+
+  const winnerBrand  = b.winner === 'A' ? b.brand_a : b.brand_b;
+  const winnerPct    = b.winner === 'A' ? b.score_pct_a : b.score_pct_b;
+  const loserPct     = b.winner === 'A' ? b.score_pct_b : b.score_pct_a;
+  const pctA         = b.score_pct_a;
+  const pctB         = b.score_pct_b;
+
+  // Header
+  content.innerHTML = `
+    <div style="font-size:14px;font-weight:700;color:#00d4ff;margin-bottom:14px;">
+      🏷️ Brand Comparison: ${b.brand_a} vs ${b.brand_b}
+      <span style="font-size:11px;color:#8b949e;font-weight:400;margin-left:8px;">for ${b.use_case}</span>
+    </div>`;
+
+  // Verdict
+  const verdict = document.createElement('div');
+  verdict.style.cssText = 'display:flex;align-items:center;gap:12px;background:rgba(0,212,255,0.06);border:1px solid rgba(0,212,255,0.3);border-radius:10px;padding:12px 14px;margin-bottom:14px;flex-wrap:wrap;';
+  if (b.near_tie) {
+    verdict.innerHTML = `<div style="font-size:22px;">🤝</div>
+      <div style="flex:1;"><div style="font-size:13px;font-weight:700;color:#e6edf3;">Near Tie!</div>
+      <div style="font-size:11px;color:#8b949e;">Both brands are very close — ${pctA}% vs ${pctB}%</div></div>`;
+  } else {
+    verdict.innerHTML = `<div style="font-size:22px;">🏆</div>
+      <div style="flex:1;"><div style="font-size:13px;font-weight:700;color:#e6edf3;">${winnerBrand} wins for ${b.use_case}</div>
+      <div style="font-size:11px;color:#8b949e;">${pctA}% vs ${pctB}% — analysed across ${b.count_a + b.count_b} laptops</div></div>
+      <div style="background:linear-gradient(135deg,#00d4ff,#7c3aed);color:#0d1117;font-size:13px;font-weight:800;padding:4px 14px;border-radius:20px;">${winnerPct}%</div>`;
+  }
+  content.appendChild(verdict);
+
+  // Score bars
+  const bars = document.createElement('div');
+  bars.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px;';
+
+  [b.brand_a, b.brand_b].forEach((brand, i) => {
+    const pct      = i === 0 ? pctA : pctB;
+    const isWinner = !b.near_tie && ((i === 0 && b.winner === 'A') || (i === 1 && b.winner === 'B'));
+    const bar = document.createElement('div');
+    bar.style.cssText = `background:rgba(255,255,255,0.03);border:1px solid ${isWinner ? 'rgba(0,212,255,0.35)' : 'rgba(255,255,255,0.06)'};border-radius:10px;padding:10px 12px;`;
+    bar.innerHTML = `
+      <div style="font-size:13px;font-weight:700;color:#e6edf3;margin-bottom:8px;">${isWinner ? '🏆 ' : ''}${brand}</div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="flex:1;height:8px;background:#0d1117;border-radius:4px;overflow:hidden;">
+          <div style="height:100%;width:${pct}%;background:${isWinner ? 'linear-gradient(90deg,#00d4ff,#7c3aed)' : '#2d3748'};border-radius:4px;transition:width 0.8s ease;"></div>
+        </div>
+        <span style="font-size:14px;font-weight:800;color:${isWinner ? '#00d4ff' : '#8b949e'};min-width:40px;text-align:right;">${pct}%</span>
+      </div>`;
+    bars.appendChild(bar);
+  });
+  content.appendChild(bars);
+
+  // Category breakdown
+  const cats = b.category_scores || {};
+  if (Object.keys(cats).length) {
+    const labels = { cpu:'CPU', ram:'RAM', storage:'Storage', gpu:'GPU', value:'Value' };
+    const catGrid = document.createElement('div');
+    catGrid.style.cssText = 'display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:14px;';
+    Object.entries(cats).forEach(([cat, info]) => {
+      const winner = info.winner;
+      const cell = document.createElement('div');
+      cell.style.cssText = 'background:rgba(255,255,255,0.03);border:1px solid rgba(255,255,255,0.06);border-radius:8px;padding:8px 6px;text-align:center;';
+      const winLabel = winner === 'A' ? b.brand_a : winner === 'B' ? b.brand_b : 'Tie';
+      const winColor = winner === 'tie' ? '#8b949e' : '#00d4ff';
+      cell.innerHTML = `<div style="font-size:10px;color:#8b949e;margin-bottom:4px;">${labels[cat] || cat}</div>
+        <div style="font-size:11px;font-weight:700;color:${winColor};">${winLabel}</div>`;
+      catGrid.appendChild(cell);
+    });
+    content.appendChild(catGrid);
+  }
+
+  // Best models
+  const bestRow = document.createElement('div');
+  bestRow.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:10px;';
+  [{ brand: b.brand_a, best: b.best_a }, { brand: b.brand_b, best: b.best_b }].forEach(item => {
+    const cell = document.createElement('div');
+    cell.style.cssText = 'background:rgba(255,255,255,0.02);border:1px solid rgba(255,255,255,0.05);border-radius:8px;padding:10px;';
+    const laptop = item.best || {};
+    cell.innerHTML = `<div style="font-size:10px;color:#8b949e;margin-bottom:4px;">⭐ Best ${item.brand} pick</div>
+      <div style="font-size:12px;font-weight:700;color:#e6edf3;">${laptop.Laptop || '—'}</div>
+      <div style="font-size:11px;color:#00d4ff;margin-top:2px;">LKR ${laptop.Price_LKR ? Number(laptop.Price_LKR).toLocaleString() : '—'}</div>`;
+    bestRow.appendChild(cell);
+  });
+  content.appendChild(bestRow);
+
+  wrap.appendChild(avatar);
+  wrap.appendChild(content);
+  messages.appendChild(wrap);
+  messages.scrollTop = messages.scrollHeight;
+}
+
 // ── Laptop cards ──────────────────────────────────────────────────
 
 function renderLaptopCards(laptops) {
@@ -217,23 +399,38 @@ function renderLaptopCards(laptops) {
     const card   = document.createElement('div');
     card.style.cssText = `background:${isBest ? 'rgba(0,212,255,0.08)' : 'rgba(255,255,255,0.03)'};border:1px solid ${isBest ? 'rgba(0,212,255,0.4)' : 'rgba(255,255,255,0.06)'};border-radius:10px;padding:12px;margin-bottom:10px;`;
 
-    card.innerHTML = `
-      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
-        <a href="${laptop.image_url}" target="_blank" style="flex-shrink:0;width:44px;height:44px;border-radius:8px;background:rgba(0,212,255,0.1);border:1px solid rgba(0,212,255,0.25);display:flex;align-items:center;justify-content:center;text-decoration:none;">
-          <svg width="26" height="26" viewBox="0 0 40 40" fill="none"><rect x="6" y="8" width="28" height="18" rx="2" stroke="#00d4ff" stroke-width="1.5" fill="none"/><rect x="9" y="11" width="22" height="12" rx="1" fill="rgba(0,212,255,0.15)"/><rect x="4" y="26" width="32" height="3" rx="1.5" fill="#00d4ff" opacity="0.4"/><rect x="14" y="29" width="12" height="2" rx="1" fill="#00d4ff" opacity="0.3"/></svg>
-        </a>
-        <div>
-          <div style="font-size:13px;font-weight:700;color:#e6edf3;">${laptop.brand} ${laptop.laptop}${isBest ? ' <span style="background:#00d4ff;color:#0d1117;font-size:10px;padding:2px 6px;border-radius:10px;font-weight:700;margin-left:4px;">BEST VALUE</span>' : ''}</div>
-          <div style="font-size:11px;color:#8b949e;margin-top:2px;">${laptop.cpu} · ${laptop.ram}GB RAM · ${laptop.storage}GB · ${laptop.screen}"</div>
-        </div>
-      </div>
-      <div style="font-size:15px;font-weight:800;color:#00d4ff;margin-bottom:10px;">💰 LKR ${Number(laptop.price).toLocaleString()}</div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap;">
-        <a href="${laptop.daraz_url}" target="_blank" style="background:#F57C00;color:white;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;">🛒 Daraz</a>
-        <a href="${laptop.ikman_url}" target="_blank" style="background:#e53935;color:white;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;">📌 ikman.lk</a>
-        <a href="${laptop.kapruka_url}" target="_blank" style="background:#1565c0;color:white;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;">🔎 Google Shop</a>
-        <button onclick="compareWith('${laptop.laptop}')" style="background:rgba(124,58,237,0.2);color:#a78bfa;border:1px solid rgba(124,58,237,0.4);padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">⚖️ Compare</button>
-      </div>`;
+    // ── Header row: thumbnail + name/specs ───────────────────────
+    const headerRow = document.createElement('div');
+    headerRow.style.cssText = 'display:flex;align-items:center;gap:10px;margin-bottom:8px;';
+
+    // Live thumbnail (replaces static SVG icon)
+    const thumb = buildLaptopThumbnail(laptop);
+    headerRow.appendChild(thumb);
+
+    const nameWrap = document.createElement('div');
+    const displayName = laptop.display_name || (laptop.brand + ' ' + laptop.laptop);
+    nameWrap.innerHTML = `
+      <div style="font-size:13px;font-weight:700;color:#e6edf3;">${displayName}${isBest ? ' <span style="background:#00d4ff;color:#0d1117;font-size:10px;padding:2px 6px;border-radius:10px;font-weight:700;margin-left:4px;">BEST VALUE</span>' : ''}</div>
+      <div style="font-size:11px;color:#8b949e;margin-top:2px;">${laptop.cpu} · ${laptop.ram}GB RAM · ${laptop.storage}GB · ${laptop.screen}"</div>`;
+    headerRow.appendChild(nameWrap);
+    card.appendChild(headerRow);
+
+    // ── Price + buy buttons ───────────────────────────────────────
+    const priceEl = document.createElement('div');
+    priceEl.style.cssText = 'font-size:15px;font-weight:800;color:#00d4ff;margin-bottom:10px;';
+    priceEl.textContent = `💰 LKR ${Number(laptop.price).toLocaleString()}`;
+    card.appendChild(priceEl);
+
+    const btnRow = document.createElement('div');
+    btnRow.style.cssText = 'display:flex;gap:8px;flex-wrap:wrap;';
+    const imgSearchUrl = laptop.image_url || `https://www.google.com/search?q=${encodeURIComponent((laptop.display_name || laptop.laptop) + ' laptop')}&tbm=isch`;
+    btnRow.innerHTML = `
+      <a href="${laptop.daraz_url}"   target="_blank" style="background:#F57C00;color:white;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;">🛒 Daraz</a>
+      <a href="${laptop.kapruka_url}" target="_blank" style="background:#1565c0;color:white;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;">🔎 Google Shop</a>
+      <a href="${imgSearchUrl}"       target="_blank" style="background:rgba(0,212,255,0.15);color:#00d4ff;border:1px solid rgba(0,212,255,0.3);padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;text-decoration:none;">🖼️ Image</a>
+      <button onclick="compareWith('${laptop.laptop}')" style="background:rgba(124,58,237,0.2);color:#a78bfa;border:1px solid rgba(124,58,237,0.4);padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;">⚖️ Compare</button>`;
+    card.appendChild(btnRow);
+
     content.appendChild(card);
   });
 
@@ -308,16 +505,34 @@ function renderComparisonCards(laptopA, laptopB, narrativeText, scorePct, nearTi
     const isWinner = !nearTie && ((i === 0 && scorePct.a >= scorePct.b) || (i === 1 && scorePct.b > scorePct.a));
     const barEl = document.createElement('div');
     barEl.style.cssText = `background:rgba(255,255,255,0.03);border:1px solid ${isWinner ? 'rgba(0,212,255,0.35)' : 'rgba(255,255,255,0.06)'};border-radius:10px;padding:10px 12px;`;
-    barEl.innerHTML = `
-      <div style="font-size:12px;font-weight:700;color:#e6edf3;margin-bottom:6px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-        ${isWinner ? '🏆 ' : ''}${l.brand} ${l.laptop}
-      </div>
+
+    // ── Thumbnail + name header ───────────────────────────────────
+    const thumbRow = document.createElement('div');
+    thumbRow.style.cssText = 'display:flex;align-items:center;gap:8px;margin-bottom:6px;';
+    const thumb = buildLaptopThumbnail(l);
+    thumb.style.width  = '44px';
+    thumb.style.height = '44px';
+    // Also resize the <img> inside if it was created
+    const innerImg = thumb.querySelector ? thumb.querySelector('img') : null;
+    if (innerImg) { innerImg.style.width = '44px'; innerImg.style.height = '44px'; }
+    thumbRow.appendChild(thumb);
+
+    const nameDiv = document.createElement('div');
+    nameDiv.style.cssText = 'font-size:12px;font-weight:700;color:#e6edf3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;';
+    nameDiv.textContent = `${isWinner ? '🏆 ' : ''}${l.brand} ${l.laptop}`;
+    thumbRow.appendChild(nameDiv);
+    barEl.appendChild(thumbRow);
+
+    // ── Score bar ─────────────────────────────────────────────────
+    const scoreRow = document.createElement('div');
+    scoreRow.innerHTML = `
       <div style="display:flex;align-items:center;gap:8px;">
         <div style="flex:1;height:6px;background:#0d1117;border-radius:3px;overflow:hidden;">
           <div class="score-bar-fill" style="height:100%;width:${pct}%;background:${isWinner ? 'linear-gradient(90deg,#00d4ff,#7c3aed)' : '#2d3748'};border-radius:3px;transition:width 0.8s ease;"></div>
         </div>
         <span style="font-size:12px;font-weight:700;color:${isWinner ? '#00d4ff' : '#8b949e'};min-width:32px;text-align:right;">${pct}%</span>
       </div>`;
+    barEl.appendChild(scoreRow);
     barsWrap.appendChild(barEl);
   });
   content.appendChild(barsWrap);
@@ -399,15 +614,14 @@ function renderComparisonCards(laptopA, laptopB, narrativeText, scorePct, nearTi
   const btnRow = document.createElement('div');
   btnRow.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px;';
   [laptopA, laptopB].forEach(l => {
-    btnRow.innerHTML += `
-      <div style="display:flex;gap:6px;flex-wrap:wrap;">
-        <a href="${l.daraz_url}" target="_blank" aria-label="Buy ${l.laptop} on Daraz"
-           style="background:#F57C00;color:white;padding:5px 10px;border-radius:7px;font-size:11px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">🛒 Daraz</a>
-        <a href="${l.kapruka_url}" target="_blank" aria-label="Google Shop for ${l.laptop}"
-           style="background:#1565c0;color:white;padding:5px 10px;border-radius:7px;font-size:11px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">🔎 Shop</a>
-        <a href="${l.image_url}" target="_blank" aria-label="View images of ${l.laptop}"
-           style="background:rgba(0,212,255,0.1);color:#00d4ff;padding:5px 10px;border-radius:7px;font-size:11px;font-weight:700;text-decoration:none;border:1px solid rgba(0,212,255,0.25);display:inline-flex;align-items:center;gap:4px;">🖼️</a>
-      </div>`;
+    const col = document.createElement('div');
+    col.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;';
+    col.innerHTML = `
+      <a href="${l.daraz_url}"   target="_blank" aria-label="Buy ${l.laptop} on Daraz"
+         style="background:#F57C00;color:white;padding:5px 10px;border-radius:7px;font-size:11px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">🛒 Daraz</a>
+      <a href="${l.kapruka_url}" target="_blank" aria-label="Google Shop for ${l.laptop}"
+         style="background:#1565c0;color:white;padding:5px 10px;border-radius:7px;font-size:11px;font-weight:700;text-decoration:none;display:inline-flex;align-items:center;gap:4px;">🔎 Shop</a>`;
+    btnRow.appendChild(col);
   });
   content.appendChild(btnRow);
 
@@ -520,6 +734,31 @@ function sageTerminalLog(speaker, message) {
   div.style.marginBottom = '10px';
   div.innerHTML = `<span style="color:#555;">[${time}]</span> <span style="color:${color};font-weight:700;">${speaker}</span><br><span style="color:#c9d1d9;">${message.replace(/</g,'&lt;').replace(/\n/g,'<br>')}</span>`;
   terminal.appendChild(div);
+  terminal.scrollTop = terminal.scrollHeight;
+}
+
+// Renders a structured laptop card with thumbnail inside the SAGE terminal
+function sageTerminalLaptopCard(laptop) {
+  const terminal = document.getElementById('sage-terminal');
+  if (!terminal) return;
+
+  const row = document.createElement('div');
+  row.style.cssText = 'display:flex;gap:10px;align-items:center;margin-bottom:10px;background:rgba(0,212,255,0.04);border:1px solid rgba(0,212,255,0.15);border-radius:8px;padding:8px 10px;';
+
+  // Thumbnail (60×60 via CSS class; shrink to fit terminal)
+  const thumb = buildLaptopThumbnail(laptop);
+  thumb.style.flexShrink = '0';
+  row.appendChild(thumb);
+
+  // Laptop info
+  const info = document.createElement('div');
+  info.style.cssText = 'font-family:monospace;font-size:12px;min-width:0;';
+  info.innerHTML = `
+    <div style="color:#e6edf3;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${laptop.brand} ${laptop.laptop}</div>
+    <div style="color:#8b949e;margin-top:2px;">LKR ${Number(laptop.price).toLocaleString()} · ${laptop.cpu} · ${laptop.ram}GB RAM</div>`;
+  row.appendChild(info);
+
+  terminal.appendChild(row);
   terminal.scrollTop = terminal.scrollHeight;
 }
 
@@ -638,10 +877,9 @@ async function askSAGE(query) {
     // Show full response in terminal (no truncation)
     sageTerminalLog('SAGE', fullText);
 
-    // If laptops were returned, show a brief card summary in terminal
+    // If laptops were returned, render each as a visual card with thumbnail in terminal
     if (data.laptops && data.laptops.length > 0) {
-      const topLaptop = data.laptops[0];
-      sageTerminalLog('📦 Top Pick', `${topLaptop.brand} ${topLaptop.laptop} — LKR ${Number(topLaptop.price).toLocaleString()} | ${topLaptop.cpu} | ${topLaptop.ram}GB RAM`);
+      data.laptops.forEach(laptop => sageTerminalLaptopCard(laptop));
     }
 
     setSAGEStatus('● RESPONSE READY');
@@ -658,21 +896,55 @@ async function askSAGE(query) {
 }
 
 function speakSAGE(text) {
-  if (!window.speechSynthesis) return;
+  if (!window.speechSynthesis || !text) return;
   window.speechSynthesis.cancel();
-  const u=new SpeechSynthesisUtterance(text);
-  u.rate=0.92; u.pitch=1.1; u.volume=1.0;
-  const femaleNames=['Microsoft Zira','Microsoft Zira Desktop','Zira','Samantha','Karen','Moira','Tessa','Veena','Victoria','Fiona','Google UK English Female','Google US English Female','Microsoft Aria','Microsoft Jenny','Microsoft Michelle','Microsoft Monica','Microsoft Clara','Microsoft Emma','Microsoft Libby','Microsoft Mia','Microsoft Natasha'];
-  const loadVoices=()=>{
-    const voices=window.speechSynthesis.getVoices();
-    let pick=voices.find(v=>femaleNames.includes(v.name));
-    if (!pick) pick=voices.find(v=>{const n=v.name.toLowerCase();return n.includes('zira')||n.includes('samantha')||n.includes('female')||n.includes('aria')||n.includes('jenny')||n.includes('michelle')||n.includes('emma')||n.includes('karen')||n.includes('tessa');});
-    if (!pick) pick=voices.find(v=>v.lang==='en-GB'||v.lang==='en-AU');
-    if (pick) u.voice=pick;
-  };
-  if (window.speechSynthesis.getVoices().length) loadVoices(); else window.speechSynthesis.onvoiceschanged=loadVoices;
-  u.onstart=()=>{setSAGEStatus('● SPEAKING...'); document.getElementById('sage-ring-outer').style.animation='sage-listen-pulse 1s ease-in-out infinite';};
-  u.onend=()=>{setSAGEStatus('● READY'); document.getElementById('sage-ring-outer').style.animation='';};
+  const u = new SpeechSynthesisUtterance(text);
+  u.rate = 0.92; u.pitch = 1.1; u.volume = 1.0;
+
+  // Detect language from Unicode script ranges and common words
+  function detectLang(t) {
+    if (/[\u0D80-\u0DFF]/.test(t)) return 'si-LK'; // Sinhala
+    if (/[\u0B80-\u0BFF]/.test(t)) return 'ta-IN'; // Tamil
+    if (/[\u0600-\u06FF]/.test(t)) return 'ar-SA'; // Arabic
+    if (/[\u4E00-\u9FFF]/.test(t)) return 'zh-CN'; // Chinese
+    if (/[\u3040-\u309F\u30A0-\u30FF]/.test(t)) return 'ja-JP'; // Japanese
+    if (/[\uAC00-\uD7AF]/.test(t)) return 'ko-KR'; // Korean
+    if (/[\u0900-\u097F]/.test(t)) return 'hi-IN'; // Hindi
+    if (/[\u0400-\u04FF]/.test(t)) return 'ru-RU'; // Russian
+    const l = t.toLowerCase();
+    if (/\b(je|vous|nous|bonjour|merci)\b/.test(l)) return 'fr-FR';
+    if (/\b(ich|sie|das|ist|und|bitte)\b/.test(l)) return 'de-DE';
+    if (/\b(hola|gracias|computadora|portatil)\b/.test(l)) return 'es-ES';
+    if (/\b(ciao|grazie|portatile)\b/.test(l)) return 'it-IT';
+    if (/\b(olá|obrigado|computador)\b/.test(l)) return 'pt-PT';
+    return 'en-US';
+  }
+
+  const detectedLang = detectLang(text);
+  u.lang = detectedLang;
+
+  const femaleKeywords = ['female','zira','samantha','karen','moira','tessa','aria',
+    'jenny','michelle','monica','emma','libby','natasha','victoria','fiona','eva','mia'];
+
+  function assignVoice() {
+    const voices = window.speechSynthesis.getVoices();
+    if (!voices.length) return;
+    const langCode = detectedLang.split('-')[0];
+    const langVoices = voices.filter(v => v.lang === detectedLang || v.lang.startsWith(langCode));
+    let pick = langVoices.find(v => femaleKeywords.some(k => v.name.toLowerCase().includes(k)));
+    if (!pick && langVoices.length) pick = langVoices[0];
+    if (!pick) {
+      const enVoices = voices.filter(v => v.lang.startsWith('en'));
+      pick = enVoices.find(v => femaleKeywords.some(k => v.name.toLowerCase().includes(k))) || enVoices[0];
+    }
+    if (pick) { u.voice = pick; u.lang = pick.lang; }
+  }
+
+  if (window.speechSynthesis.getVoices().length) assignVoice();
+  else window.speechSynthesis.onvoiceschanged = assignVoice;
+
+  u.onstart = () => { setSAGEStatus('● SPEAKING...'); document.getElementById('sage-ring-outer').style.animation = 'sage-listen-pulse 1s ease-in-out infinite'; };
+  u.onend   = () => { setSAGEStatus('● READY'); document.getElementById('sage-ring-outer').style.animation = ''; };
   window.speechSynthesis.speak(u);
 }
 
@@ -762,9 +1034,36 @@ function renderResultLaptopCards(laptops){
   el.innerHTML='';
   const sorted=[...laptops].sort((a,b)=>parseFloat(a.price)-parseFloat(b.price));
   sorted.forEach(l=>{
-    const card=document.createElement('div');
-    card.style.cssText='border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;margin-top:12px;background:rgba(255,255,255,0.02);';
-    card.innerHTML=`<div style="font-weight:700;color:#e6edf3;">${l.brand} ${l.laptop}</div><div style="font-size:12px;color:#8b949e;margin:4px 0;">${l.cpu} · ${l.ram}GB RAM · ${l.storage}GB · ${l.gpu}</div><div style="font-size:14px;font-weight:700;color:#00d4ff;margin-bottom:8px;">LKR ${Number(l.price).toLocaleString()}</div><a href="${l.daraz_url}" target="_blank" style="background:#F57C00;color:white;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none;margin-right:6px;">🛒 Daraz</a><a href="${l.ikman_url}" target="_blank" style="background:#e53935;color:white;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none;">📌 ikman.lk</a>`;
+    const card = document.createElement('div');
+    card.style.cssText = 'border:1px solid rgba(255,255,255,0.08);border-radius:10px;padding:12px;margin-top:12px;background:rgba(255,255,255,0.02);';
+
+    // ── Header row: thumbnail + name/specs ───────────────────────
+    const headerRow = document.createElement('div');
+    headerRow.style.cssText = 'display:flex;align-items:flex-start;gap:10px;margin-bottom:10px;';
+
+    const thumb = buildLaptopThumbnail(l);
+    headerRow.appendChild(thumb);
+
+    const infoWrap = document.createElement('div');
+    infoWrap.style.cssText = 'flex:1;min-width:0;';
+    const displayName = l.display_name || (l.brand + ' ' + l.laptop);
+    infoWrap.innerHTML = `
+      <div style="font-weight:700;color:#e6edf3;">${displayName}</div>
+      <div style="font-size:12px;color:#8b949e;margin:4px 0;">${l.cpu} · ${l.ram}GB RAM · ${l.storage}GB · ${l.gpu}</div>
+      <div style="font-size:14px;font-weight:700;color:#00d4ff;">LKR ${Number(l.price).toLocaleString()}</div>`;
+    headerRow.appendChild(infoWrap);
+    card.appendChild(headerRow);
+
+    // ── Buy buttons ───────────────────────────────────────────────
+    const btnRow = document.createElement('div');
+    btnRow.style.cssText = 'display:flex;gap:6px;flex-wrap:wrap;';
+    const imgSearchUrl = l.image_url || `https://www.google.com/search?q=${encodeURIComponent((l.display_name || l.laptop) + ' laptop')}&tbm=isch`;
+    btnRow.innerHTML = `
+      <a href="${l.daraz_url}"   target="_blank" style="background:#F57C00;color:white;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none;">🛒 Daraz</a>
+      <a href="${l.kapruka_url}" target="_blank" style="background:#1565c0;color:white;padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none;">🔎 Google Shop</a>
+      <a href="${imgSearchUrl}"  target="_blank" style="background:rgba(0,212,255,0.15);color:#00d4ff;border:1px solid rgba(0,212,255,0.3);padding:5px 10px;border-radius:6px;font-size:11px;font-weight:700;text-decoration:none;">🖼️ Image</a>`;
+    card.appendChild(btnRow);
+
     el.appendChild(card);
   });
 }

@@ -8,11 +8,13 @@ from flask import Flask, request, jsonify, render_template, session
 from flask_cors import CORS
 from groq import Groq
 from dotenv import load_dotenv
+from urllib.parse import quote_plus
 import pandas as pd
 import numpy as np
 import pickle
 import os
 import uuid
+import requests as http_requests
 
 # ── Paths ─────────────────────────────────────────────────────────────────────
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -21,8 +23,9 @@ ROOT_DIR = os.path.dirname(BASE_DIR)
 # ── Config ────────────────────────────────────────────────────────────────────
 load_dotenv(dotenv_path=os.path.join(BASE_DIR, "api.env"))
 GROQ_API_KEY   = os.getenv("GROQ_API_KEY")
+SERPAPI_KEY    = os.getenv("SERPAPI_KEY", "")
 FLASK_SECRET   = os.getenv("FLASK_SECRET_KEY", "pcadvisor-secret-2026")
-MAX_HISTORY    = 20   # keep last 10 turns (20 messages)
+MAX_HISTORY    = 10   # keep last 5 turns (10 messages) — prevents cookie overflow
 
 client = Groq(api_key=GROQ_API_KEY)
 
@@ -81,8 +84,8 @@ except FileNotFoundError as e:
     print(f"⚠️  ML model not found ({e}). Run train_model.py first.")
 
 # ── Intent & comparator ───────────────────────────────────────────────────────
-from intent_classifier import detect_intent, extract_comparison_names
-from comparator import compare_two
+from intent_classifier import detect_intent, extract_comparison_names, is_brand
+from comparator import compare_two, compare_brands
 
 # ── System prompt ─────────────────────────────────────────────────────────────
 SYSTEM_PROMPT = """You are SAGE (Smart Advisor for Gadget Evaluation) — an expert AI assistant specialising in laptops and PCs for the Sri Lankan market.
@@ -125,13 +128,18 @@ def _get_session_history():
 
 
 def _save_session_history(history: list):
-    session["history"] = history[-MAX_HISTORY:]
+    # Truncate each message content to 300 chars to prevent cookie overflow
+    trimmed = [
+        {"role": m["role"], "content": m["content"][:300]}
+        for m in history[-MAX_HISTORY:]
+    ]
+    session["history"] = trimmed
     session.modified = True
 
 
 def _call_llm(messages: list, temperature: float = 0.7, max_tokens: int = 1024) -> str:
     response = client.chat.completions.create(
-        model="llama-3.3-70b-versatile",
+        model="llama-3.1-8b-instant",
         messages=messages,
         temperature=temperature,
         max_completion_tokens=max_tokens,
@@ -142,20 +150,51 @@ def _call_llm(messages: list, temperature: float = 0.7, max_tokens: int = 1024) 
 def _build_laptop_cards(df_subset: pd.DataFrame) -> list:
     result = []
     for _, row in df_subset.iterrows():
-        name = str(row.get("Laptop", ""))
+        name    = str(row.get("Laptop", "") or "").strip()
+        brand   = str(row.get("Brand",  "") or "").strip()
+
+        # Resolve image_url with three-way priority:
+        # 1. Explicit Image_URL column (if column exists and has a non-empty value)
+        # 2. Constructed Google Images search URL (Brand + Laptop name, properly encoded)
+        # 3. Empty string (when brand or name is missing)
+        stored_url = str(row.get("Image_URL", "") or "").strip()
+        if stored_url:
+            image_url = stored_url
+        elif brand and name:
+            image_url = (
+                "https://www.google.com/search?q="
+                + quote_plus(f"{brand} {name} laptop")
+                + "&tbm=isch"
+            )
+        else:
+            image_url = ""
+
+        # Avoid duplicating brand in image search query
+        # (laptop name often already starts with brand e.g. "Apple MacBook Air M3")
+        name_lower  = name.lower()
+        brand_lower = brand.lower()
+        if brand_lower and name_lower.startswith(brand_lower):
+            image_query = f"{name} laptop"
+        else:
+            image_query = f"{brand} {name} laptop".strip() if (brand and name) else name
+
+        # Display name — avoid "Apple Apple MacBook" duplication
+        display_name = name if (brand_lower and name_lower.startswith(brand_lower)) else f"{brand} {name}".strip()
+
         result.append({
-            "laptop":      name,
-            "brand":       str(row.get("Brand", "")),
-            "cpu":         str(row.get("CPU", "")),
-            "ram":         str(row.get("RAM", "")),
-            "storage":     str(row.get("Storage", "")),
-            "gpu":         str(row.get("GPU", "")),
-            "screen":      str(row.get("Screen", "")),
-            "price":       str(row.get("Price_LKR", "")),
-            "image_url":   f"https://www.google.com/search?q={name.replace(' ','+')}+laptop&tbm=isch",
-            "daraz_url":   f"https://www.daraz.lk/catalog/?q={name.replace(' ','+')}+laptop",
-            "kapruka_url": f"https://www.google.com/search?q={name.replace(' ','+')}+laptop+buy+Sri+Lanka",
-            "ikman_url":   f"https://ikman.lk/en/ads/sri-lanka/computers?query={name.replace(' ','+')}",
+            "laptop":       name,
+            "display_name": display_name,
+            "brand":        brand,
+            "cpu":          str(row.get("CPU",       "") or ""),
+            "ram":          str(row.get("RAM",       "") or ""),
+            "storage":      str(row.get("Storage",   "") or ""),
+            "gpu":          str(row.get("GPU",       "") or ""),
+            "screen":       str(row.get("Screen",    "") or ""),
+            "price":        str(row.get("Price_LKR", "") or ""),
+            "image_url":    image_url,
+            "image_query":  image_query,
+            "daraz_url":    f"https://www.daraz.lk/catalog/?q={quote_plus(name)}",
+            "kapruka_url":  f"https://www.google.com/search?q={quote_plus(name + ' buy Sri Lanka')}",
         })
     return result
 
@@ -314,6 +353,58 @@ def _find_laptop_in_df(name: str) -> dict | None:
         return combined.iloc[0].to_dict()
     return None
 
+# ── Image cache (in-memory, avoids redundant API calls) ──────────────────────
+_image_cache: dict = {}
+
+
+def _fetch_image_url(query: str) -> str:
+    """
+    Fetch the first usable image URL from SerpApi Google Images search.
+    Prefers 'original' (direct CDN URL) over 'thumbnail' (SerpApi-gated).
+    Results are cached in-memory for the lifetime of the server process.
+    """
+    if not SERPAPI_KEY or SERPAPI_KEY == "your_serpapi_key_here":
+        return ""
+
+    if query in _image_cache:
+        return _image_cache[query]
+
+    try:
+        resp = http_requests.get(
+            "https://serpapi.com/search",
+            params={
+                "engine":  "google_images",
+                "q":       query,
+                "num":     "5",
+                "api_key": SERPAPI_KEY,
+                "safe":    "active",
+            },
+            timeout=8,
+        )
+        resp.raise_for_status()
+        results = resp.json().get("images_results", [])
+
+        url = ""
+        for result in results[:5]:
+            # Prefer direct CDN URLs (Amazon, Walmart, etc.) — load in browser without CORS issues
+            original = result.get("original", "")
+            if original and original.startswith("https://"):
+                url = original
+                break
+
+        # Fallback: proxy the thumbnail through our backend if no original found
+        if not url and results:
+            url = results[0].get("thumbnail", "")
+
+        _image_cache[query] = url
+        print(f"🖼️  Image found for '{query}': {url[:80]}")
+        return url
+    except Exception as e:
+        print(f"⚠️  Image search failed for '{query}': {e}")
+        _image_cache[query] = ""
+        return ""
+
+
 # ── Routes ────────────────────────────────────────────────────────────────────
 
 @app.route("/")
@@ -361,6 +452,61 @@ def chat():
     # ── Intent: COMPARE ───────────────────────────────────────────────────────
     if intent == "compare":
         name_a, name_b = extract_comparison_names(user_message)
+
+        # ── Brand vs Brand comparison ─────────────────────────────────────────
+        if name_a and name_b and is_brand(name_a) and is_brand(name_b):
+            brand_result = compare_brands(name_a, name_b, df, use_case)
+            if brand_result:
+                pct_a = brand_result["score_pct_a"]
+                pct_b = brand_result["score_pct_b"]
+                winner_name = brand_result["brand_a"] if brand_result["winner"] == "A" else brand_result["brand_b"]
+
+                context_block = f"""
+BRAND COMPARISON DATA for {use_case}:
+Brand A: {brand_result['brand_a']} ({brand_result['count_a']} laptops in dataset)
+  Average Score: {pct_a}%
+  Strengths: {', '.join(brand_result['pros_a']) or 'None'}
+  Best model: {brand_result['best_a'].get('Laptop', '')} at LKR {brand_result['best_a'].get('Price_LKR', '')}
+
+Brand B: {brand_result['brand_b']} ({brand_result['count_b']} laptops in dataset)
+  Average Score: {pct_b}%
+  Strengths: {', '.join(brand_result['pros_b']) or 'None'}
+  Best model: {brand_result['best_b'].get('Laptop', '')} at LKR {brand_result['best_b'].get('Price_LKR', '')}
+
+{'Overall Winner: ' + winner_name + ' (' + str(max(pct_a, pct_b)) + '%)' if not brand_result['near_tie'] else 'Result: Near Tie'}
+
+Give a warm detailed brand comparison covering:
+1. Overall winner with the percentage scores clearly stated
+2. What {brand_result['brand_a']} does better
+3. What {brand_result['brand_b']} does better
+4. Who should choose which brand
+5. Best value pick recommendation
+Use markdown formatting with bold brand names."""
+
+                # Build LLM messages and get reply
+                sys_ctx = SYSTEM_PROMPT + f"\n\n---\n{context_block}\n---"
+                msgs = [{"role": "system", "content": sys_ctx}] + history + [{"role": "user", "content": user_message}]
+                try:
+                    reply = _call_llm(msgs)
+                except Exception as e:
+                    return jsonify({"error": str(e)}), 500
+
+                history.append({"role": "user",      "content": user_message})
+                history.append({"role": "assistant", "content": reply})
+                _save_session_history(history)
+
+                return jsonify({
+                    "reply":         reply,
+                    "brand_compare": brand_result,
+                    "intent":        "brand_compare",
+                    "laptops":       [],
+                    "comparison":    None,
+                    "near_tie":      brand_result["near_tie"],
+                    "score_pct":     {"a": pct_a, "b": pct_b},
+                    "use_case":      use_case,
+                })
+
+        # ── Regular laptop vs laptop comparison ───────────────────────────────
         row_a = _find_laptop_in_df(name_a) if name_a else None
         row_b = _find_laptop_in_df(name_b) if name_b else None
 
@@ -422,20 +568,49 @@ For this query, provide:
     # ── Intent: RECOMMEND / BUDGET ────────────────────────────────────────────
     elif intent in ("recommend", "budget"):
         if rag:
-            # Use KNN for finding similar laptops, then score with RF
             filtered = _filter_by_budget_usecase(budget_lkr, use_case, user_message, location)
-            if not filtered.empty:
-                scored = _score_with_model(filtered)
-                top = scored.head(5)
-                laptop_cards = _build_laptop_cards(top)
-                loc_note = f" available in {location}" if location else ""
+
+            # If filtered is very small, try without strict use-case filter (vague query)
+            if filtered.empty or len(filtered) < 3:
+                filtered = df[df["Price_LKR"] <= budget_lkr].copy()
+                if filtered.empty:
+                    filtered = df.copy()
+
+            scored = _score_with_model(filtered)
+            top = scored.head(5)
+            laptop_cards = _build_laptop_cards(top)
+
+            loc_note = f" available in {location}" if location else ""
+
+            # Detect if this is a vague/open-ended query with no specific budget mentioned
+            is_vague = budget_lkr == 500_000 and not any(
+                kw in user_message.lower()
+                for kw in ["lkr", "rupee", "budget", "under", "below", "within", "000"]
+            )
+
+            if is_vague:
+                context_block = (
+                    f"The user asked a general question: '{user_message}'\n"
+                    f"They haven't specified a budget or use case. Show them the top 5 best-value laptops "
+                    f"from the dataset below and ask them to share their budget and use case so you can narrow it down.\n\n"
+                    f"TOP 5 LAPTOPS FROM DATASET:\n" +
+                    "\n".join([
+                        f"• {r['display_name']} | {r['cpu']} | {r['ram']}GB RAM | "
+                        f"{r['storage']}GB | LKR {r['price']}"
+                        for r in laptop_cards
+                    ]) +
+                    "\n\nBe warm and helpful. Lead with 1-2 strong picks, explain why they're great, "
+                    "then ask what budget and use case the customer has so you can personalise further."
+                )
+            else:
                 context_block = f"RECOMMENDED LAPTOPS{loc_note} (filtered by budget, use-case, and location):\n" + \
                     "\n".join([
-                        f"• {r['brand']} {r['laptop']} | {r['cpu']} | {r['ram']}GB RAM | "
+                        f"• {r['display_name']} | {r['cpu']} | {r['ram']}GB RAM | "
                         f"{r['storage']}GB | {r['gpu']} | LKR {r['price']}"
                         for r in laptop_cards
                     ]) + "\n\nProvide a warm, personalized recommendation explaining WHY each option suits them."
-            else:
+
+            if not laptop_cards:
                 context_block = "No laptops found matching the criteria. Explain this and suggest broadening the budget or requirements."
 
     # ── Intent: EXPLAIN / GENERAL ─────────────────────────────────────────────
@@ -444,7 +619,6 @@ For this query, provide:
             context_block = f"RELEVANT DATASET CONTEXT:\n{rag.get_context_for_prompt(user_message, 5)}"
             results = rag.search(user_message, top_k=3)
             laptop_cards = _build_laptop_cards(results)
-
     # ── Build messages for LLM ────────────────────────────────────────────────
     system_with_context = SYSTEM_PROMPT
     if context_block:
@@ -591,8 +765,8 @@ Write a detailed comparison using these exact sections:
 ## Overall Winner
 ## {row_a.get('Laptop','')} — Strengths
 ## {row_b.get('Laptop','')} — Strengths
-## Who Should Buy Each
-## Value for Money Verdict"""
+## Who Should Buy Each0
+0#0# Value for Money Verdict"""
 
     try:
         reply = _call_llm(
@@ -662,6 +836,45 @@ def clear_history():
     session["history"] = []
     session.modified   = True
     return jsonify({"status": "cleared"})
+
+
+@app.route("/image-search", methods=["GET"])
+def image_search():
+    """
+    Returns a real product image URL for a laptop query via SerpApi.
+    Accepts: ?q=HP+Pavilion+15+laptop
+    Returns: { image_url: "https://..." }
+    """
+    query = request.args.get("q", "").strip()
+    if not query:
+        return jsonify({"image_url": ""}), 400
+    url = _fetch_image_url(query)
+    return jsonify({"image_url": url})
+
+
+@app.route("/image-proxy", methods=["GET"])
+def image_proxy():
+    """
+    Proxies an external image through the backend to avoid CORS/hotlink issues.
+    Accepts: ?url=https://...
+    Returns: the image binary with correct Content-Type
+    """
+    target_url = request.args.get("url", "").strip()
+    if not target_url or not target_url.startswith("https://"):
+        return "", 400
+    try:
+        headers = {
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120 Safari/537.36",
+            "Referer": "https://www.google.com/",
+        }
+        img_resp = http_requests.get(target_url, headers=headers, timeout=8, stream=True)
+        img_resp.raise_for_status()
+        content_type = img_resp.headers.get("Content-Type", "image/jpeg")
+        from flask import Response
+        return Response(img_resp.content, content_type=content_type)
+    except Exception as e:
+        print(f"⚠️  Image proxy failed for '{target_url[:60]}': {e}")
+        return "", 502
 
 
 @app.route("/search", methods=["POST"])
