@@ -10,11 +10,7 @@ INTENT_PATTERNS = {
     "recommend": [
         "recommend", "suggest", "best", "good", "top", "for gaming",
         "for programming", "for office", "for video editing", "for data science",
-        "need a laptop", "looking for", "want", "buy",
-        "which laptop", "what laptop", "should i choose", "should i get",
-        "help me choose", "help me pick", "what should i buy", "which one",
-        "what do you recommend", "what would you recommend", "can you suggest",
-        "show me", "find me", "get me", "i need"
+        "need a laptop", "looking for", "want", "buy"
     ],
     "explain": [
         "why", "explain", "how", "what makes", "reason", "tell me about",
@@ -50,7 +46,7 @@ def detect_intent(query: str) -> str:
 
 def extract_comparison_names(query: str) -> tuple:
     """
-    Tries to extract two laptop/brand names from a comparison query.
+    Tries to extract two laptop names from a comparison query.
     Returns (name_a, name_b) or (None, None) if parsing fails.
     """
     q = query.lower()
@@ -61,7 +57,7 @@ def extract_comparison_names(query: str) -> tuple:
             parts = q.split(delimiter, 1)
             if len(parts) == 2:
                 # Remove common words
-                for noise in ["compare", "between", "the", "is", "better", "which"]:
+                for noise in ["compare", "between", "the"]:
                     parts = [p.replace(noise, "") for p in parts]
                 a = parts[0].strip()
                 b = parts[1].strip()
@@ -81,15 +77,3 @@ def extract_comparison_names(query: str) -> tuple:
                 return (a, b)
 
     return (None, None)
-
-
-# Known laptop brands for brand-level comparison detection
-KNOWN_BRANDS = [
-    "apple", "hp", "dell", "lenovo", "asus", "acer", "msi", "samsung",
-    "lg", "razer", "microsoft", "toshiba", "sony", "huawei", "gigabyte"
-]
-
-
-def is_brand(name: str) -> bool:
-    """Returns True if the name matches a known brand."""
-    return name.lower().strip() in KNOWN_BRANDS
