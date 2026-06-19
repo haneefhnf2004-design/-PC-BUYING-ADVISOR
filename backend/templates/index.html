@@ -410,8 +410,13 @@
       return;
     }
 
-    // Start voice recognition directly (browser handles mic permission)
-    _startRecognition(SR);
+    // Request mic permission explicitly first
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(() => _startRecognition(SR))
+      .catch(err => {
+        sageTerminalLog('System', 'Microphone access denied. Please allow mic permission in your browser and try again.');
+        setSAGEStatus('● MIC BLOCKED');
+      });
   }
 
   function _startRecognition(SR) {
